@@ -1,0 +1,7 @@
+#### Experiments
+
+e_1:
+  data_dir: "e_1"
+  description: "Robot moves at severely\nreduced speed"
+  swarm_behaviour: 2
+  influence_r: 100

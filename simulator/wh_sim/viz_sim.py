@@ -150,7 +150,7 @@ class VizSim(Simulator):
             [self.warehouse.box_c[i,0] for i in range(self.cfg.get('warehouse', 'number_of_boxes'))],
             [self.warehouse.box_c[i,1] for i in range(self.cfg.get('warehouse', 'number_of_boxes'))], 
             'bs', 
-            markersize = marker_size-5)
+            markersize = 5)
 
         h_x_vec, h_y_vec = self.generate_dot_heading_arrow()
         h_line = {}

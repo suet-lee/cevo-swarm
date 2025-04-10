@@ -15,7 +15,7 @@ class Warehouse:
 		self.height = height
 		self.box_range = box_radius*2.0#box_range # range at which a box can be picked up 
 		self.number_of_boxes = number_of_boxes
-		self.radius = box_radius # physical radius of the box (approximated to a circle even though square in animation)
+		self.box_radius = box_radius # physical radius of the box (approximated to a circle even though square in animation)
 
 		self.box_is_free = np.ones(self.number_of_boxes) # Box states set to 1 = Free (not on a robots), if = 0 = Not free (on a robot)
 		self.counter = 0 # time starts at 0s or time step = 0 
@@ -34,11 +34,21 @@ class Warehouse:
 		self.rob_c = np.array(self.rob_c) # convert list to array 
 		self.box_d = np.zeros((self.number_of_boxes, 2)) # box centre coordinate deviation (how far the box moves in one time step)
 		self.robot_carrier = np.full((self.number_of_boxes), -1) # Value at index = box number is the robot number that is currently moving that box
-		
+
+		# specify template for box deposit
+		# aggregation points
+		self.ap = np.array([
+			[self.width/2,self.height/2]
+		])
+
+		self.d_scale = np.array([
+			np.sqrt(self.width/2*self.width/2 + self.height/2*self.height/2)/5
+		]) # this is the largest distance possible from aggregation point
+
 	def generate_object_positions(self, conf):
 		if conf == self.RANDOM_OBJ_POS:
-			possible_x = int((self.width)/(self.radius*2)) # number of positions possible on the x axis
-			possible_y = int((self.height)/(self.radius*2)) # number of positions possible on the y axis
+			possible_x = int((self.width)/(self.box_radius*2)) # number of positions possible on the x axis
+			possible_y = int((self.height)/(self.box_radius*2)) # number of positions possible on the y axis
 			list_n = [] # empty list of possible positions 
 			for x in range(possible_x):
 				for y in range(possible_y):
@@ -50,7 +60,7 @@ class Warehouse:
 			
 			c_select = [] # central coordinates (empty list) 
 			for j in range(N): #for the total number of units 
-				c_select.append([self.radius + ((self.radius*2))*XY[j][0], self.radius + ((self.radius*2))*XY[j][1]]) # assign a central coordinate to unit j (can be a box or an agent) based on the unique randomly selected list, XY
+				c_select.append([self.box_radius + ((self.box_radius*2))*XY[j][0], self.box_radius + ((self.box_radius*2))*XY[j][1]]) # assign a central coordinate to unit j (can be a box or an agent) based on the unique randomly selected list, XY
 
 			for b in range(self.number_of_boxes):
 				self.box_c.append(c_select[b]) # assign initial box positions
@@ -58,8 +68,8 @@ class Warehouse:
 				self.rob_c.append(c_select[r+self.number_of_boxes]) # assign initial robot positions
 
 		elif conf == self.OBJ_POS_1:
-			possible_x_half = int((self.width/2)/(self.radius*2)) # number of positions possible on the x axis in one side of warehosue
-			possible_y = int((self.height)/(self.radius*2)) # number of positions possible on the y axis
+			possible_x_half = int((self.width/2)/(self.box_radius*2)) # number of positions possible on the x axis in one side of warehosue
+			possible_y = int((self.height)/(self.box_radius*2)) # number of positions possible on the y axis
 			list_n_box = [] # empty list of possible positions 
 			list_n_agent = [] # empty list of possible positions 
 			for x in range(possible_x_half):
@@ -76,9 +86,9 @@ class Warehouse:
 			
 			c_select = [] # central coordinates (empty list) 
 			for j in range(self.number_of_boxes): #for the total number of units 
-				c_select.append([self.radius + ((self.radius*2))*XY_box[j][0], self.radius + ((self.radius*2))*XY_box[j][1]])
+				c_select.append([self.box_radius + ((self.box_radius*2))*XY_box[j][0], self.box_radius + ((self.box_radius*2))*XY_box[j][1]])
 			for j in range(self.swarm.number_of_agents): #for the total number of units 
-				c_select.append([self.radius + ((self.radius*2))*XY_agent[j][0], self.radius + ((self.radius*2))*XY_agent[j][1]])
+				c_select.append([self.box_radius + ((self.box_radius*2))*XY_agent[j][0], self.box_radius + ((self.box_radius*2))*XY_agent[j][1]])
 
 			for b in range(self.number_of_boxes):
 				self.box_c.append(c_select[b]) # assign initial box positions
@@ -89,43 +99,38 @@ class Warehouse:
 			raise Exception("Object position not valid")
 
 	def iterate(self, heading_bias=False, box_attraction=False): # moves the robot and box positions forward in one time step
-		dist_rob_to_box = cdist(self.box_c, self.rob_c) # calculates the euclidean distance from every robot to every box (centres)
-		is_closest_rob_in_range = np.min(dist_rob_to_box, 1) < self.box_range # if the minimum distance box-robot is less than the pick up sensory range, then qu_close_box = 1
-		closest_rob_id = np.argmin(dist_rob_to_box, 1)	
-		boxes_to_pickup = self.is_box_free()*is_closest_rob_in_range
-		to_pickup = np.argwhere(boxes_to_pickup==1)
-
-		# needs to be a loop (rather than vectorised) in case two robots are close to the same box
-		for box_id in to_pickup:
-			closest_r = closest_rob_id[box_id][0]
-			is_robot_carrying_box = self.is_robot_carrying_box(closest_r)
-			# Check if robot is already carrying a box: if not, then set robot to "lift" the box (may fail if faulty)
-			if is_robot_carrying_box == 0 and self.swarm.set_agent_box_state(closest_r, 1):
-				self.box_is_free[box_id] = 0 # change box state to 0 (not free, on a robot)
-				self.box_c[box_id] = self.rob_c[closest_r] # change the box centre so it is aligned with its robot carrier's centre
-				self.robot_carrier[box_id] = closest_r # set the robot_carrier for box b to that robot ID
+		if self.counter % 1 == 0:
+			self.swarm.pickup_box(self)
 
 		self.rob_d = self.swarm.iterate(
 			self.rob_c, 
 			self.box_c, 
+			self.box_radius,
 			self.box_is_free, 
 			self.map, 
 			heading_bias,
 			box_attraction) # the robots move using the random walk function which generates a new deviation (rob_d)
 		
+		# handles logic to move boxes with robots/drop boxes
 		t = self.counter%10
 		self.rob_c_prev[t] = self.rob_c # Save a record of centre coordinates before update
 		self.rob_c = self.rob_c + self.rob_d # robots centres change as they move
 		active_boxes = self.box_is_free == 0 # boxes which are on a robot
 		self.box_d = np.array((active_boxes,active_boxes)).T*self.rob_d[self.robot_carrier] # move the boxes by the amount equal to the robot carrying them 
 		self.box_c = self.box_c + self.box_d
-		self.boxes_dropped = self.swarm.dropoff_box(self, active_boxes)
-		if any(self.boxes_dropped) == 1: # if any boxes have been delivered
-			box_n = np.argwhere(self.boxes_dropped == 1) # box IDs that have been dropped
-			rob_n = self.robot_carrier[box_n] # robot IDs that have dropped a box just now
-			self.box_is_free[box_n] = 1 # mark boxes as free again
-			self.swarm.agent_has_box[rob_n] = 0 # mark robots as free again
 		
+		if self.counter % 1 == 0:
+			drop = self.swarm.dropoff_box(self)
+			
+			if any(drop) == 1:
+				active_id = np.argwhere(active_boxes==1).flatten()
+				drop_idx = np.argwhere(drop==1)[0]
+				box_n = active_id[drop_idx]
+				rob_n = self.robot_carrier[box_n] # robot IDs that have dropped a box just now
+				self.box_is_free[box_n] = 1 # mark boxes as free again
+				self.swarm.agent_has_box[rob_n] = 0 # mark robots as free again
+		
+		self.swarm.compute_metrics()
 		self.counter += 1
 		self.swarm.counter = self.counter
 

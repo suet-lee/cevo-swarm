@@ -3,5 +3,7 @@
 e_1:
   data_dir: "e_1"
   description: "Robot moves at severely\nreduced speed"
-  swarm_behaviour: 2
+  swarm_behaviour: 1
   influence_r: 100
+  P_m: 0.9
+  D_m: 0.8

@@ -13,15 +13,21 @@ class Robot:
 
 class Swarm:
     
-    def __init__(self, repulsion_o, repulsion_w, heading_change_rate=1):
+    def __init__(self, repulsion_o, repulsion_w, heading_change_rate=1, P_m=1, D_m=1):
         self.agents = [] # turn this into a dictionary to make it accessible later for heterogeneous swarms?
         self.number_of_agents = 0
-        self.repulsion_o = repulsion_o # repulsion distance between agents-objects
+        self.repulsion_o = repulsion_o # repulsion margin between agents-objects
         self.repulsion_w = repulsion_w # repulsion distance between agents-walls
         self.heading_change_rate = heading_change_rate
         self.counter = 0
         self.F_heading = None
         self.agent_dist = None
+        self.P_m = P_m
+        self.D_m = D_m
+        self.G_max = 1.5
+        self.G_min = 0.2
+        self.F_max = 1.5
+        self.F_min = 0.2
 
     def add_agents(self, agent_obj, number):
         self.agents.append((agent_obj, number))
@@ -57,12 +63,12 @@ class Swarm:
 
     # rob_c: robot center coordinates
     # box_c: box center coordinates
-    def step(self, rob_c, box_c, is_box_in_transit, map, heading_bias=False, box_attraction=False):
+    def step(self, rob_c, box_c, box_r, is_box_in_transit, map, heading_bias=False, box_attraction=False):
         self.F_heading = self._generate_heading_force(heading_bias)
 
         # Compute euclidean (cdist) distance between agents and other agents
         self.agent_dist = cdist(rob_c, rob_c)
-        F_box, F_agent = self._generate_interobject_force(box_c, rob_c, is_box_in_transit, box_attraction)
+        F_box, F_agent = self._generate_interobject_force(box_c, box_r, rob_c, is_box_in_transit, box_attraction)
 
         # Compute distance to wall segments
         self.wall_dist = cdist(rob_c, map.wall_divisions)
@@ -95,9 +101,67 @@ class Swarm:
         self.agent_has_box[agent_index] = state
         return True
 
-    def dropoff_box(self, warehouse, active_boxes):
-        boxes_dropped = np.random.randint(0,2,self.number_of_agents) # random vector TODO add logic based on culture
-        return boxes_dropped*active_boxes
+    # amplification for pickup
+    def _G(self,p,box_in_range):
+        if box_in_range < 2:
+            p_ = self.G_max*p
+        else:
+            p_ = self.G_min*p
+        
+        return min(p_,1)
+
+    # amplification for dropoff
+    def _F(self,p,box_in_range): 
+        p_ = p
+        amp_max = np.argwhere(box_in_range > 2)
+        amp_min = np.argwhere(box_in_range <= 2)
+        p_[amp_max] *= self.F_max
+        p_[amp_min] *= self.F_min
+
+        return np.minimum(p_,np.ones(len(p)))
+
+    def pickup_box(self, warehouse):
+        dist_rob_to_box = cdist(warehouse.box_c, warehouse.rob_c) # calculates the euclidean distance from every robot to every box (centres)
+        is_closest_rob_in_range = np.min(dist_rob_to_box, 1) < warehouse.box_range # if the minimum distance box-robot is less than the pick up sensory range, then qu_close_box = 1
+        closest_rob_id = np.argmin(dist_rob_to_box, 1)	
+        boxes_to_pickup = warehouse.is_box_free()*is_closest_rob_in_range
+        to_pickup = np.argwhere(boxes_to_pickup==1)
+        
+		# needs to be a loop (rather than vectorised) in case two robots are close to the same box
+        for box_id in to_pickup:
+            closest_r = closest_rob_id[box_id][0]
+            is_robot_carrying_box = warehouse.is_robot_carrying_box(closest_r)
+            # Check if robot is already carrying a box: if not, then set robot to "lift" the box (may fail if faulty)
+            if is_robot_carrying_box == 0:
+                # check pickup probability
+                d = cdist(warehouse.ap, warehouse.box_c[box_id])
+                d_ = (d/warehouse.d_scale).flatten()
+                p = self.P_m*( 1 - 1/(1+d_*d_) ).flatten()
+                p_ = self._G(p, self.box_in_range[closest_r])
+                print("d_", d_)
+                print("pick",p,'  ',p_,'\n')
+                pickup = np.random.binomial(1,p_)
+                if pickup and warehouse.swarm.set_agent_box_state(closest_r, 1):
+                    warehouse.box_is_free[box_id] = 0 # change box state to 0 (not free, on a robot)
+                    warehouse.box_c[box_id] = warehouse.rob_c[closest_r] # change the box centre so it is aligned with its robot carrier's centre
+                    warehouse.robot_carrier[box_id] = closest_r # set the robot_carrier for box b to that robot ID
+
+    def dropoff_box(self, warehouse):
+        # active box coordinates
+        active_box_id = np.argwhere(warehouse.box_is_free == 0).flatten()
+        active_c = warehouse.box_c[active_box_id]
+        if len(active_c) == 0:
+            return []
+        
+        d = cdist(np.tile(warehouse.ap, (len(active_c),1)), active_c)
+        d_ = d[0]/warehouse.d_scale
+        p = self.D_m/(1+d_*d_)
+        rob_id = warehouse.robot_carrier[active_box_id]
+        p_ = self._F(p,self.box_in_range[rob_id])
+        print("d_", d_)
+        print("drop",p,'  ',p_,'\n')
+        drop = np.random.binomial(1,p_).flatten()
+        return drop
 		
     ## Avoidance behaviour for avoiding the warehouse walls ##		
     def _generate_wall_avoidance_force(self, rob_c, map): # input the warehouse map 
@@ -157,13 +221,14 @@ class Swarm:
         return -np.array(list(zip(heading_x, heading_y)))
          
     # Computes repulsion forces: a negative force means comes out as attraction
-    def _generate_interobject_force(self, box_c, rob_c, is_box_in_transit, box_attraction=False):
-        repulsion = self.repulsion_o#np.minimum(self.repulsion_d, self.camera_sensor_range_V) @TODO allow for collision behaviour
-        self.too_close = self.agent_dist < repulsion # TRUE if agent is too close to another agent (enable collision avoidance)
+    def _generate_interobject_force(self, box_c, box_r, rob_c, is_box_in_transit, box_attraction=False):
+        margin = self.repulsion_o#np.minimum(self.repulsion_d, self.camera_sensor_range_V) @TODO allow for collision behaviour
+        # TODO allow for a vector of robot_r (heterogeneous agents)
+        self.too_close = self.agent_dist < 2*self.robot_r[0] + margin # TRUE if agent is too close to another agent (enable collision avoidance)
         
         # Compute euclidean (cdist) distance between boxes and agents
         self.box_dist = cdist(box_c, rob_c) # distance between all the boxes and all the agents
-        self.too_close_boxes = self.box_dist < repulsion # TRUE if agent is too close to a box (enable collision avoidance). Does not avoid box if agent does not have a box but this is considered later in the code (not_free*F_box)
+        self.too_close_boxes = self.box_dist < 2*box_r + margin # TRUE if agent is too close to a box (enable collision avoidance). Does not avoid box if agent does not have a box but this is considered later in the code (not_free*F_box)
 
         proximity_to_robots = rob_c[:, :, np.newaxis] - rob_c.T[np.newaxis, :, :] # Compute vectors between agents
         proximity_to_boxes = box_c[:, :, np.newaxis] - rob_c.T[np.newaxis, :, :] # Computer vectors between agents and boxes 
@@ -192,46 +257,60 @@ class Swarm:
         
         return (F_box_total, F_agent)
 
+    # TODO delete - not used
     # Check if a collision has occurred and in those cases, generate a rebound force
     # Call before random walk (which generates random movement)
-    def check_collision(self, warehouse, respect_physics=False):
-        try:
-            no_agents = self.number_of_agents
-            no_boxes = warehouse.number_of_boxes
-            box_ag_dist = self.box_dist # shape (box_no, agent_no)
-            ag_ag_dist = self.agent_dist
-            ag_r = self.robot_r
-            box_r = warehouse.radius
+    # def check_collision(self, warehouse, respect_physics=False):
+    #     try:
+    #         no_agents = self.number_of_agents
+    #         no_boxes = warehouse.number_of_boxes
+    #         box_ag_dist = self.box_dist # shape (box_no, agent_no)
+    #         ag_ag_dist = self.agent_dist
+    #         ag_r = self.robot_r
+    #         box_r = warehouse.radius
 
-            # if interobject distance is < obj1_r+obj2_r, then we have a collision
-            tile_box_ag = np.tile(ag_r, (no_boxes, 1)) + np.transpose(np.tile(box_r, (no_agents, no_boxes)))
-            tile_ag_ag = np.tile(ag_r, (no_agents, 1))*2
+    #         # if interobject distance is < obj1_r+obj2_r, then we have a collision
+    #         tile_box_ag = np.tile(ag_r, (no_boxes, 1)) + np.transpose(np.tile(box_r, (no_agents, no_boxes)))
+    #         tile_ag_ag = np.tile(ag_r, (no_agents, 1))*2
             
-            col_box_ag = box_ag_dist < tile_box_ag
-            col_ag_ag = ag_ag_dist < tile_ag_ag
+    #         col_box_ag = box_ag_dist < tile_box_ag
+    #         col_ag_ag = ag_ag_dist < tile_ag_ag
             
-            box_collisions = np.sum(col_box_ag, axis=1)
-            agent_collisions = np.sum(col_ag_ag, axis=1) - 1
+    #         box_collisions = np.sum(col_box_ag, axis=1)
+    #         agent_collisions = np.sum(col_ag_ag, axis=1) - 1
             
-            if not respect_physics:
-                return box_collisions, agent_collisions, warehouse.rob_d
+    #         if not respect_physics:
+    #             return box_collisions, agent_collisions, warehouse.rob_d
             
-            # remember to take into account picking up boxes
-            # warehouse.rob_d
-            # warehouse.rob_c
-            # warehouse.box_c
-            # cdist(box_c, rob_c)
+    #         # remember to take into account picking up boxes
+    #         # warehouse.rob_d
+    #         # warehouse.rob_c
+    #         # warehouse.box_c
+    #         # cdist(box_c, rob_c)
             
-            # print(ag_ag_dist)
-            # print(self.counter)
-            # time.sleep(600)
-            # exit()
-            # print('ag', b.shape)
-        except Exception as e:
-            print(e)
+    #         # print(ag_ag_dist)
+    #         # print(self.counter)
+    #         # time.sleep(600)
+    #         # exit()
+    #         # print('ag', b.shape)
+    #     except Exception as e:
+    #         print(e)
 
-        # returns new rob_d
-        # rebound force and heading - will depend on how many collision objects and their forces and headings!        
+    # TODO not used
+    def compute_metrics(self):
+        # Global
+        # self.number_of_agents
+        # self.number_of_boxes
+        # self.number_of_zones
+
+        # Local
+        # self.agent_dist # number of agents in range
+        # self.wall_dist # walls in range
+        self.box_in_range = sum(self.box_dist < self.camera_sensor_range_V[0]) # boxes in range
+        # self.in_division # which zone it's currently in
+        # self.box_type # what type of box it's carrying
+
+    
 
 class BoidsSwarm(Swarm):
 

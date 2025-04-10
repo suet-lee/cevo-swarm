@@ -55,19 +55,14 @@ class Simulator:
         
         behaviour = cfg.get('swarm_behaviour')
         
-        # boids flocking behaviour
-        if behaviour == 1:
-            swarm = BoidsSwarm(
-                repulsion_o=cfg.get('warehouse', 'repulsion_object'), 
-                repulsion_w=cfg.get('warehouse', 'repulsion_wall'),
-                heading_change_rate=cfg.get('heading_change_rate')
-            )
         # CA evo swarm
-        elif behaviour == 2:
+        if behaviour == 1:
             swarm = CA_Swarm(
                 repulsion_o=cfg.get('warehouse', 'repulsion_object'), 
                 repulsion_w=cfg.get('warehouse', 'repulsion_wall'),
                 heading_change_rate=cfg.get('heading_change_rate'),
+                P_m=cfg.get('P_m'),
+                D_m=cfg.get('D_m'),
                 influence_r=cfg.get('influence_r')
             )
         # default random walk
@@ -75,7 +70,9 @@ class Simulator:
             swarm = Swarm(
                 repulsion_o=cfg.get('warehouse', 'repulsion_object'), 
                 repulsion_w=cfg.get('warehouse', 'repulsion_wall'),
-                heading_change_rate=cfg.get('heading_change_rate')
+                heading_change_rate=cfg.get('heading_change_rate',
+                P_m=cfg.get('P_m'),
+                D_m=cfg.get('D_m'))
             )
 
         swarm.add_agents(robot_obj, cfg.get('warehouse', 'number_of_agents'))

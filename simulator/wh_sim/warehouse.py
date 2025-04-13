@@ -1,5 +1,6 @@
 import numpy as np
 import random
+import math
 from scipy.spatial.distance import cdist, pdist, euclidean
 
 class Warehouse:
@@ -9,7 +10,7 @@ class Warehouse:
 	OBJ_POS_TEST = 2
 
 	def __init__(self, width, height, number_of_boxes, box_radius, swarm,
-		init_object_positions=RANDOM_OBJ_POS):
+		init_object_positions=RANDOM_OBJ_POS, box_type_ratio=[1]):
 
 		self.width = width
 		self.height = height
@@ -29,6 +30,7 @@ class Warehouse:
 		self.rob_c_prev = {}
 		self.rob_d = np.zeros((self.swarm.number_of_agents, 2)) # robot centre cooridinate deviation (how much the robot moves in one time step)
 		self.generate_object_positions(int(init_object_positions))
+		self.generate_object_types(box_type_ratio)
 		
 		self.box_c = np.array(self.box_c) # convert list to array
 		self.rob_c = np.array(self.rob_c) # convert list to array 
@@ -38,11 +40,11 @@ class Warehouse:
 		# specify template for box deposit
 		# aggregation points
 		self.ap = np.array([
-			[self.width/2,self.height/2]
+			[self.width/4,self.height/4]
 		])
 
 		self.d_scale = np.array([
-			np.sqrt(self.width/2*self.width/2 + self.height/2*self.height/2)/5
+			np.sqrt(3*self.width/4*3*self.width/4 + 3*self.height/4*3*self.height/4)/5
 		]) # this is the largest distance possible from aggregation point
 
 	def generate_object_positions(self, conf):
@@ -97,6 +99,20 @@ class Warehouse:
 
 		else:
 			raise Exception("Object position not valid")
+
+	def generate_object_types(self, box_type_ratio):
+		self.box_types = []
+		self.box_type_count = [] # Useful for visualization
+		nb = self.number_of_boxes
+		for idx, it in enumerate(box_type_ratio):
+			if idx == len(box_type_ratio) - 1:
+				break
+			nb_type = math.floor(it*nb)
+			self.box_types += [idx]*nb_type
+			self.box_type_count.append(nb_type)
+		nb_type = self.number_of_boxes-len(self.box_types)
+		self.box_types += [idx]*nb_type
+		self.box_type_count.append(nb_type)
 
 	def iterate(self, heading_bias=False, box_attraction=False): # moves the robot and box positions forward in one time step
 		if self.counter % 1 == 0:

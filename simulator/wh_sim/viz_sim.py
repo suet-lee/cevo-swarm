@@ -11,6 +11,7 @@ class VizSim(Simulator):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.snapshot_s = []#[1]
+        self.colours = ['b','g','r','c','m','y']
 
     def generate_dot_positional_data(self):
         agent_range = range(self.cfg.get('warehouse', 'number_of_agents'))
@@ -67,9 +68,8 @@ class VizSim(Simulator):
         for i in range(len(dot)):
             dot[i].set_data(x_data[i], y_data[i])
             
-        box.set_data(
-            [self.warehouse.box_c[n,0] for n in range(self.cfg.get('warehouse', 'number_of_boxes'))], 
-            [self.warehouse.box_c[n,1] for n in range(self.cfg.get('warehouse', 'number_of_boxes'))])
+        for i in range(len(box)):
+            box[i].set_data(self.warehouse.box_c[i,0],self.warehouse.box_c[i,1])
 
         h_x_vec, h_y_vec = self.generate_dot_heading_arrow()
         for i in range(self.swarm.number_of_agents):
@@ -145,13 +145,32 @@ class VizSim(Simulator):
         for i in range(len(x_data)):
             dot[i], = ax.plot(x_data[i], y_data[i], marker[i],
                 markersize = marker_size, fillstyle = 'none')
-                    
-        box, = ax.plot(
-            [self.warehouse.box_c[i,0] for i in range(self.cfg.get('warehouse', 'number_of_boxes'))],
-            [self.warehouse.box_c[i,1] for i in range(self.cfg.get('warehouse', 'number_of_boxes'))], 
-            'bs', 
-            markersize = 5)
 
+        no_boxes = 0
+        box = {}
+        for i in range(self.warehouse.number_of_boxes):
+            box_type = self.warehouse.box_types[i]
+            if box_type < 6:
+                marker_str = self.colours[box_type] + 's'
+            else:
+                marker_str = 'ks'
+
+            box[i], = ax.plot(
+                self.warehouse.box_c[i,0],self.warehouse.box_c[i,1], 
+                marker_str, 
+                markersize = 5)
+
+        # box = []
+        # for idx,it in enumerate(self.warehouse.box_type_count):
+        #     marker_str = self.colours[idx] + 's'
+        #     box_, = ax.plot(
+        #         [self.warehouse.box_c[i,0] for i in range(no_boxes,it+no_boxes)],
+        #         [self.warehouse.box_c[i,1] for i in range(no_boxes,it+no_boxes)], 
+        #         marker_str, 
+        #         markersize = 5)
+        #     box += box_
+        #     no_boxes += it
+        
         h_x_vec, h_y_vec = self.generate_dot_heading_arrow()
         h_line = {}
         for i in range(self.swarm.number_of_agents):

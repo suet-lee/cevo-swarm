@@ -37,14 +37,15 @@ class Simulator:
             self.swarm = self.build_swarm(self.cfg)
         except Exception as e:
             raise e
-
+        
         self.warehouse = Warehouse(
             self.cfg.get('warehouse', 'width'),
             self.cfg.get('warehouse', 'height'), 
             self.cfg.get('warehouse', 'number_of_boxes'), 
             self.cfg.get('warehouse', 'box_radius'), 
             self.swarm,
-            self.cfg.get('warehouse', 'object_position'))            
+            self.cfg.get('warehouse', 'object_position'),
+            self.cfg.get('box_type_ratio'))            
 
     def build_swarm(self, cfg):
         robot_obj = Robot(

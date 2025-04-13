@@ -24,6 +24,8 @@ class Swarm:
         self.agent_dist = None
         self.P_m = P_m
         self.D_m = D_m
+        # reduce parameters below
+        # add factor for box type
         self.G_max = 1.5
         self.G_min = 0.2
         self.F_max = 1.5

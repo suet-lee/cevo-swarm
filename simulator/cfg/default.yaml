@@ -1,14 +1,14 @@
 robot:
   radius: 12.5
   max_v: 2
-  camera_sensor_range: 50
+  camera_sensor_range: 100
 
 warehouse:
   box_radius: 5.0
   width: 500
   height: 500
   number_of_agents: 10
-  number_of_boxes: 50
+  number_of_boxes: 20
   repulsion_wall: 25
   repulsion_object: 0
   object_position: 0

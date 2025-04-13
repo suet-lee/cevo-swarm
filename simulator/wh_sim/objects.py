@@ -13,7 +13,7 @@ class Robot:
 
 class Swarm:
     
-    def __init__(self, repulsion_o, repulsion_w, heading_change_rate=1, P_m=1, D_m=1):
+    def __init__(self, repulsion_o, repulsion_w, heading_change_rate=1):
         self.agents = [] # turn this into a dictionary to make it accessible later for heterogeneous swarms?
         self.number_of_agents = 0
         self.repulsion_o = repulsion_o # repulsion margin between agents-objects
@@ -22,14 +22,6 @@ class Swarm:
         self.counter = 0
         self.F_heading = None
         self.agent_dist = None
-        self.P_m = P_m
-        self.D_m = D_m
-        # reduce parameters below
-        # add factor for box type
-        self.G_max = 1.5
-        self.G_min = 0.2
-        self.F_max = 1.5
-        self.F_min = 0.2
 
     def add_agents(self, agent_obj, number):
         self.agents.append((agent_obj, number))
@@ -57,6 +49,20 @@ class Swarm:
         self.heading = 0.0314*np.random.randint(-100, 100, self.number_of_agents) # initial heading for all robots is randomly chosen
         self.computed_heading = self.heading # this is computed heading after force calculations are completed
         self.computed_heading_prev = {} # stores previous computed heading
+
+    def init_params(self,cfg):
+        # box interaction probabilities
+        self.base_pickup_p = np.ones(self.number_of_agents)*cfg.get('base_pickup_p')
+        self.base_dropoff_p = np.ones(self.number_of_agents)*cfg.get('base_dropoff_p')
+        self.P_m = np.tile(cfg.get('P_m'),(1,self.number_of_agents)).flatten()
+        self.D_m = np.tile(cfg.get('D_m'),(1,self.number_of_agents)).flatten()#cfg.get('D_m')#np.ones(self.number_of_agents)*cfg.get('D_m')
+        
+        # reduce parameters below
+        # add factor for box type
+        self.G_max = 1.5
+        self.G_min = 0.2
+        self.F_max = 1.5
+        self.F_min = 0.2
 
     # @TODO allow for multiple behaviours, heterogeneous swarm
     def iterate(self, *args, **kwargs):
@@ -136,13 +142,20 @@ class Swarm:
             # Check if robot is already carrying a box: if not, then set robot to "lift" the box (may fail if faulty)
             if is_robot_carrying_box == 0:
                 # check pickup probability
+                
                 d = cdist(warehouse.ap, warehouse.box_c[box_id])
-                d_ = (d/warehouse.d_scale).flatten()
-                p = self.P_m*( 1 - 1/(1+d_*d_) ).flatten()
-                p_ = self._G(p, self.box_in_range[closest_r])
-                print("d_", d_)
-                print("pick",p,'  ',p_,'\n')
-                pickup = np.random.binomial(1,p_)
+                box_type = warehouse.box_types[box_id]
+                # if points out of range, probability of pickup is fixed at base rate
+                if d > self.camera_sensor_range_V[closest_r]:
+                    p = self.base_pickup_p[closest_r]
+                else:
+                    d_ = (d*2/self.camera_sensor_range_V[closest_r]).flatten()
+                    P_m = self.P_m[closest_r*warehouse.number_of_box_types+box_type]
+                    p = P_m*( 1 - 1/(1+d_*d_) ).flatten()
+                    p = self._G(p, self.box_in_range[closest_r])
+                
+                pickup = np.random.binomial(1,p)
+                print("pick  ",d," ",p,'\n')
                 if pickup and warehouse.swarm.set_agent_box_state(closest_r, 1):
                     warehouse.box_is_free[box_id] = 0 # change box state to 0 (not free, on a robot)
                     warehouse.box_c[box_id] = warehouse.rob_c[closest_r] # change the box centre so it is aligned with its robot carrier's centre
@@ -155,14 +168,17 @@ class Swarm:
         if len(active_c) == 0:
             return []
         
-        d = cdist(np.tile(warehouse.ap, (len(active_c),1)), active_c)
-        d_ = d[0]/warehouse.d_scale
-        p = self.D_m/(1+d_*d_)
         rob_id = warehouse.robot_carrier[active_box_id]
-        p_ = self._F(p,self.box_in_range[rob_id])
-        print("d_", d_)
-        print("drop",p,'  ',p_,'\n')
-        drop = np.random.binomial(1,p_).flatten()
+        d = cdist(np.tile(warehouse.ap, (len(active_c),1)), active_c)
+        d_ = d[0]*2/self.camera_sensor_range_V[rob_id] # scale down by factor cam_range/2
+        idx = rob_id*warehouse.number_of_box_types+warehouse.box_types[rob_id]
+        p = self.D_m[idx]/(1+d_*d_)
+        p = self._F(p,self.box_in_range[rob_id])
+        # if points out of range, probability of dropoff is fixed at base rate
+        in_range = (d[0] <= self.camera_sensor_range_V[rob_id])
+        p = p*in_range + self.base_dropoff_p[rob_id]*(1-in_range)
+        drop = np.random.binomial(1,p).flatten()
+        print("drop  ",d[0]," ",p,"   ",in_range,'\n')
         return drop
 		
     ## Avoidance behaviour for avoiding the warehouse walls ##		

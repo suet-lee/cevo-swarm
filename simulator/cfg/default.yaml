@@ -10,7 +10,7 @@ warehouse:
   number_of_agents: 10
   number_of_boxes: 20
   repulsion_wall: 25
-  repulsion_object: 0
+  repulsion_object: 5
   object_position: 0
 
 faults: []

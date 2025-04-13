@@ -37,15 +37,12 @@ class Warehouse:
 		self.box_d = np.zeros((self.number_of_boxes, 2)) # box centre coordinate deviation (how far the box moves in one time step)
 		self.robot_carrier = np.full((self.number_of_boxes), -1) # Value at index = box number is the robot number that is currently moving that box
 
-		# specify template for box deposit
+		# specify spatial zoning for box deposit
 		# aggregation points
 		self.ap = np.array([
-			[self.width/4,self.height/4]
+			[self.width/4,self.height/4],
+			# [3*self.width/4,3*self.height/4],
 		])
-
-		self.d_scale = np.array([
-			np.sqrt(3*self.width/4*3*self.width/4 + 3*self.height/4*3*self.height/4)/5
-		]) # this is the largest distance possible from aggregation point
 
 	def generate_object_positions(self, conf):
 		if conf == self.RANDOM_OBJ_POS:
@@ -102,17 +99,16 @@ class Warehouse:
 
 	def generate_object_types(self, box_type_ratio):
 		self.box_types = []
-		self.box_type_count = [] # Useful for visualization
 		nb = self.number_of_boxes
 		for idx, it in enumerate(box_type_ratio):
 			if idx == len(box_type_ratio) - 1:
 				break
 			nb_type = math.floor(it*nb)
 			self.box_types += [idx]*nb_type
-			self.box_type_count.append(nb_type)
 		nb_type = self.number_of_boxes-len(self.box_types)
 		self.box_types += [idx]*nb_type
-		self.box_type_count.append(nb_type)
+		self.number_of_box_types = len(box_type_ratio)
+		self.box_types = np.array(self.box_types)
 
 	def iterate(self, heading_bias=False, box_attraction=False): # moves the robot and box positions forward in one time step
 		if self.counter % 1 == 0:

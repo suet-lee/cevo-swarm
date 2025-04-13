@@ -11,8 +11,8 @@ from . import Swarm, BoidsSwarm
 # Implements swarm with cultural evolution
 class CA_Swarm(Swarm):
 
-    def __init__(self, repulsion_o, repulsion_w, heading_change_rate=1, P_m=1, D_m=1, influence_r=100):
-        super().__init__(repulsion_o, repulsion_w, heading_change_rate, P_m, D_m)
+    def __init__(self, repulsion_o, repulsion_w, heading_change_rate=1, influence_r=100):
+        super().__init__(repulsion_o, repulsion_w, heading_change_rate)
         
         self.has_init_params = False
         self.influence_r = influence_r

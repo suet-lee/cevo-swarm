@@ -1,4 +1,5 @@
 import numpy as np
+import math
 from scipy.spatial.distance import cdist
 
 class Robot:
@@ -52,11 +53,26 @@ class Swarm:
 
     def init_params(self,cfg):
         # box interaction probabilities
-        self.base_pickup_p = np.ones(self.number_of_agents)*cfg.get('base_pickup_p')
-        self.base_dropoff_p = np.ones(self.number_of_agents)*cfg.get('base_dropoff_p')
-        self.P_m = np.tile(cfg.get('P_m'),(1,self.number_of_agents)).flatten()
-        self.D_m = np.tile(cfg.get('D_m'),(1,self.number_of_agents)).flatten()#cfg.get('D_m')#np.ones(self.number_of_agents)*cfg.get('D_m')
+        culture = cfg.get('culture')
+
+        self.base_pickup_p = []
+        self.base_dropoff_p = []
+        self.P_m = np.array([])
+        self.D_m = np.array([])
+        for subculture in culture:
+            no_agents = math.floor(self.number_of_agents*subculture['ratio'])
+            base_pickup_p = [subculture['base_pickup_p']]*no_agents
+            base_dropoff_p = [subculture['base_dropoff_p']]*no_agents
+            P_m = np.tile(subculture['P_m'],(1,no_agents)).flatten()
+            D_m = np.tile(subculture['P_m'],(1,no_agents)).flatten()
+            self.base_pickup_p += base_pickup_p
+            self.base_dropoff_p += base_dropoff_p
+            self.P_m = np.concatenate((self.P_m,P_m))
+            self.D_m = np.concatenate((self.D_m,D_m))
         
+        self.base_pickup_p = np.array(self.base_pickup_p)
+        self.base_dropoff_p = np.array(self.base_dropoff_p)
+
         # reduce parameters below
         # add factor for box type
         self.G_max = 1.5
@@ -142,24 +158,24 @@ class Swarm:
             # Check if robot is already carrying a box: if not, then set robot to "lift" the box (may fail if faulty)
             if is_robot_carrying_box == 0:
                 # check pickup probability
-                
-                d = cdist(warehouse.ap, warehouse.box_c[box_id])
-                box_type = warehouse.box_types[box_id]
-                # if points out of range, probability of pickup is fixed at base rate
-                if d > self.camera_sensor_range_V[closest_r]:
-                    p = self.base_pickup_p[closest_r]
-                else:
-                    d_ = (d*2/self.camera_sensor_range_V[closest_r]).flatten()
-                    P_m = self.P_m[closest_r*warehouse.number_of_box_types+box_type]
-                    p = P_m*( 1 - 1/(1+d_*d_) ).flatten()
-                    p = self._G(p, self.box_in_range[closest_r])
-                
-                pickup = np.random.binomial(1,p)
-                print("pick  ",d," ",p,'\n')
-                if pickup and warehouse.swarm.set_agent_box_state(closest_r, 1):
-                    warehouse.box_is_free[box_id] = 0 # change box state to 0 (not free, on a robot)
-                    warehouse.box_c[box_id] = warehouse.rob_c[closest_r] # change the box centre so it is aligned with its robot carrier's centre
-                    warehouse.robot_carrier[box_id] = closest_r # set the robot_carrier for box b to that robot ID
+                for ap in warehouse.ap:
+                    d = cdist([ap], warehouse.box_c[box_id])
+                    box_type = warehouse.box_types[box_id]
+                    # if points out of range, probability of pickup is fixed at base rate
+                    if d > self.camera_sensor_range_V[closest_r]:
+                        p = self.base_pickup_p[closest_r]
+                    else:
+                        d_ = (d*2/self.camera_sensor_range_V[closest_r]).flatten()
+                        P_m = self.P_m[closest_r*warehouse.number_of_box_types+box_type]
+                        p = P_m*( 1 - 1/(1+d_*d_) ).flatten()
+                        p = self._G(p, self.box_in_range[closest_r])
+                    
+                    pickup = np.random.binomial(1,p)
+                    print("pick  ",d," ",p,'\n')
+                    if pickup and warehouse.swarm.set_agent_box_state(closest_r, 1):
+                        warehouse.box_is_free[box_id] = 0 # change box state to 0 (not free, on a robot)
+                        warehouse.box_c[box_id] = warehouse.rob_c[closest_r] # change the box centre so it is aligned with its robot carrier's centre
+                        warehouse.robot_carrier[box_id] = closest_r # set the robot_carrier for box b to that robot ID
 
     def dropoff_box(self, warehouse):
         # active box coordinates

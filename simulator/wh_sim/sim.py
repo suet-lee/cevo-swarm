@@ -45,7 +45,9 @@ class Simulator:
             self.cfg.get('warehouse', 'box_radius'), 
             self.swarm,
             self.cfg.get('warehouse', 'object_position'),
-            self.cfg.get('box_type_ratio'))            
+            self.cfg.get('box_type_ratio'))     
+
+        self.warehouse.generate_ap(self.cfg)       
 
     def build_swarm(self, cfg):
         robot_obj = Robot(

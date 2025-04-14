@@ -30,15 +30,6 @@ class CA_Swarm(Swarm):
         # self.bs_A = self._A # alignment
         # self.bs_S = self._S # separation
 
-        # parameters: these should determine where robots decide to drop boxes
-        # - near other boxes?
-        # - types of boxes?
-        # - in particular zones (relative or wrt world frame)
-        # -- in response to environmental parameters, to other robots, signals
-        
-        # likelihood of dropping box
-        # preference for spatial zone~
-
 
         # Influence/update factors (how influential or resistant an agent is in social exchange)
         self.influence_F = np.random.uniform(0,1,self.number_of_agents) # TODO intialise - how? random for now
@@ -62,5 +53,13 @@ class CA_Swarm(Swarm):
 
         # Update : each agent updates their behavioural parameters from their belief space
 
+        
 
         return
+
+
+    # def execute(self, robot_ids):
+    #     super().step(robot_ids)
+
+    # def social_learning(self, robot_ids):
+        

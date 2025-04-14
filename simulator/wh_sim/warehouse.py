@@ -37,13 +37,6 @@ class Warehouse:
 		self.box_d = np.zeros((self.number_of_boxes, 2)) # box centre coordinate deviation (how far the box moves in one time step)
 		self.robot_carrier = np.full((self.number_of_boxes), -1) # Value at index = box number is the robot number that is currently moving that box
 
-		# specify spatial zoning for box deposit
-		# aggregation points
-		self.ap = np.array([
-			[self.width/4,self.height/4],
-			# [3*self.width/4,3*self.height/4],
-		])
-
 	def generate_object_positions(self, conf):
 		if conf == self.RANDOM_OBJ_POS:
 			possible_x = int((self.width)/(self.box_radius*2)) # number of positions possible on the x axis
@@ -109,6 +102,17 @@ class Warehouse:
 		self.box_types += [idx]*nb_type
 		self.number_of_box_types = len(box_type_ratio)
 		self.box_types = np.array(self.box_types)
+
+	def generate_ap(self,cfg):
+		# specify spatial zoning for box deposit
+		# aggregation points
+		ap = cfg.get('ap')
+		self.ap = []
+
+		for it in ap:
+			self.ap.append([it[0]*self.width, it[1]*self.height])
+
+		self.ap = np.array(self.ap)
 
 	def iterate(self, heading_bias=False, box_attraction=False): # moves the robot and box positions forward in one time step
 		if self.counter % 1 == 0:

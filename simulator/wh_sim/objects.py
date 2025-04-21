@@ -157,25 +157,27 @@ class Swarm:
             is_robot_carrying_box = warehouse.is_robot_carrying_box(closest_r)
             # Check if robot is already carrying a box: if not, then set robot to "lift" the box (may fail if faulty)
             if is_robot_carrying_box == 0:
-                # check pickup probability
-                for ap in warehouse.ap:
-                    d = cdist([ap], warehouse.box_c[box_id])
-                    box_type = warehouse.box_types[box_id]
-                    # if points out of range, probability of pickup is fixed at base rate
-                    if d > self.camera_sensor_range_V[closest_r]:
-                        p = self.base_pickup_p[closest_r]
-                    else:
-                        d_ = (d*2/self.camera_sensor_range_V[closest_r]).flatten()
-                        P_m = self.P_m[closest_r*warehouse.number_of_box_types+box_type]
-                        p = P_m*( 1 - 1/(1+d_*d_) ).flatten()
-                        p = self._G(p, self.box_in_range[closest_r])
-                    
-                    pickup = np.random.binomial(1,p)
-                    print("pick  ",d," ",p,'\n')
-                    if pickup and warehouse.swarm.set_agent_box_state(closest_r, 1):
-                        warehouse.box_is_free[box_id] = 0 # change box state to 0 (not free, on a robot)
-                        warehouse.box_c[box_id] = warehouse.rob_c[closest_r] # change the box centre so it is aligned with its robot carrier's centre
-                        warehouse.robot_carrier[box_id] = closest_r # set the robot_carrier for box b to that robot ID
+                # check pickup probability for closest ap
+                d_ap = cdist(warehouse.ap, warehouse.box_c[box_id])
+                closest_ap = np.argmin(d_ap,0)
+                d = np.min(d_ap,0)
+                ap = warehouse.ap[closest_ap]
+                box_type = warehouse.box_types[box_id]
+                # if points out of range, probability of pickup is fixed at base rate
+                if d > self.camera_sensor_range_V[closest_r]:
+                    p = self.base_pickup_p[closest_r]
+                else:
+                    d_ = (d*2/self.camera_sensor_range_V[closest_r]).flatten()
+                    P_m = self.P_m[closest_r*warehouse.number_of_box_types+box_type]
+                    p = P_m*( 1 - 1/(1+d_*d_) ).flatten()
+                    p = self._G(p, self.box_in_range[closest_r])
+                
+                pickup = np.random.binomial(1,p)
+                # print("pick  ",d," ",p,'\n')
+                if pickup and warehouse.swarm.set_agent_box_state(closest_r, 1):
+                    warehouse.box_is_free[box_id] = 0 # change box state to 0 (not free, on a robot)
+                    warehouse.box_c[box_id] = warehouse.rob_c[closest_r] # change the box centre so it is aligned with its robot carrier's centre
+                    warehouse.robot_carrier[box_id] = closest_r # set the robot_carrier for box b to that robot ID
 
     def dropoff_box(self, warehouse):
         # active box coordinates
@@ -194,7 +196,7 @@ class Swarm:
         in_range = (d[0] <= self.camera_sensor_range_V[rob_id])
         p = p*in_range + self.base_dropoff_p[rob_id]*(1-in_range)
         drop = np.random.binomial(1,p).flatten()
-        print("drop  ",d[0]," ",p,"   ",in_range,'\n')
+        # print("drop  ",d[0]," ",p,"   ",in_range,'\n')
         return drop
 		
     ## Avoidance behaviour for avoiding the warehouse walls ##		

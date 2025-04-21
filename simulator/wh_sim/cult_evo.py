@@ -9,10 +9,16 @@ from . import Swarm, BoidsSwarm
 
 
 # Implements swarm with cultural evolution
-class CA_Swarm(Swarm):
+class CA(Warehouse):
 
-    def __init__(self, repulsion_o, repulsion_w, heading_change_rate=1, influence_r=100):
-        super().__init__(repulsion_o, repulsion_w, heading_change_rate)
+    PHASE_SOCIAL_LEARNING = 0
+    PHASE_UPDATE_BEHAVIOUR = 1
+    PHASE_EXECUTE_BEHAVIOUR = 2
+
+    def __init__(self, width, height, number_of_boxes, box_radius, swarm,
+		init_object_positions=RANDOM_OBJ_POS, box_type_ratio=[1]):
+        super().__init__(width, height, number_of_boxes, box_radius, swarm,
+		    init_object_positions=RANDOM_OBJ_POS, box_type_ratio=[1])
         
         self.has_init_params = False
         self.influence_r = influence_r
@@ -39,12 +45,47 @@ class CA_Swarm(Swarm):
         if not self.has_init_params:
             self._init_params()
 
-        if self.counter > 0:
-            self.evolve()
+    def select_phase(self):
+        p = np.random.uniform(0,3,self.number_of_agents)
+        phase = np.floor(p)
+        s = np.argwhere(phase==self.PHASE_SOCIAL_LEARNING).flatten()
+        u = np.argwhere(phase==self.PHASE_UPDATE_BEHAVIOUR).flatten()
+        e = np.argwhere(phase==self.PHASE_EXECUTE_BEHAVIOUR).flatten()
+        return s,u,e
+
+    def iterate(self, heading_bias=False, box_attraction=False):     
+        self.rob_d = self.swarm.iterate(
+			self.rob_c, 
+			self.box_c, 
+			self.box_radius,
+			self.box_is_free, 
+			self.map, 
+			heading_bias,
+			box_attraction) # the robots move using the random walk function which generates a new deviation (rob_d)
+		
+		# handles logic to move boxes with robots/drop boxes
+		t = self.counter%10
+		self.rob_c_prev[t] = self.rob_c # Save a record of centre coordinates before update
+		self.rob_c = self.rob_c + self.rob_d # robots centres change as they move
+		active_boxes = self.box_is_free == 0 # boxes which are on a robot
+		self.box_d = np.array((active_boxes,active_boxes)).T*self.rob_d[self.robot_carrier] # move the boxes by the amount equal to the robot carrying them 
+		self.box_c = self.box_c + self.box_d
+		
+        s,u,e = self.select_phase()   
+        self.socialize(s)
+        self.update(u)
+        self.execute_pickup_dropoff(e)
+		
+		self.swarm.compute_metrics()
+		self.counter += 1
+		self.swarm.counter = self.counter
+
+    def socialize(self, agent_ids):
+        return
 
     # TODO asynchronous evo ?
     # This is called after the main step function (step forward in swarm behaviour)
-    def evolve(self):
+    def update(self, agent_ids):
         # Influence : each agent applies their influence to other agents' belief spaces
         # first check which agents are in proximity (should be computed in self.agent_dist)
         in_range = (self.agent_dist < self.influence_r)
@@ -54,12 +95,6 @@ class CA_Swarm(Swarm):
         # Update : each agent updates their behavioural parameters from their belief space
 
         
-
         return
 
-
-    # def execute(self, robot_ids):
-    #     super().step(robot_ids)
-
-    # def social_learning(self, robot_ids):
         

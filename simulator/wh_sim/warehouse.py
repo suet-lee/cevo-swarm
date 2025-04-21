@@ -114,10 +114,20 @@ class Warehouse:
 
 		self.ap = np.array(self.ap)
 
-	def iterate(self, heading_bias=False, box_attraction=False): # moves the robot and box positions forward in one time step
-		if self.counter % 1 == 0:
-			self.swarm.pickup_box(self)
+	def execute_pickup_dropoff(self):
+		self.swarm.pickup_box(self)
+		drop = self.swarm.dropoff_box(self)
+		
+		if any(drop) == 1:
+			active_boxes = self.box_is_free == 0
+			active_id = np.argwhere(active_boxes==1).flatten()
+			drop_idx = np.argwhere(drop==1)[0]
+			box_n = active_id[drop_idx]
+			rob_n = self.robot_carrier[box_n] # robot IDs that have dropped a box just now
+			self.box_is_free[box_n] = 1 # mark boxes as free again
+			self.swarm.agent_has_box[rob_n] = 0 # mark robots as free again
 
+	def iterate(self, heading_bias=False, box_attraction=False): # moves the robot and box positions forward in one time step
 		self.rob_d = self.swarm.iterate(
 			self.rob_c, 
 			self.box_c, 
@@ -135,16 +145,8 @@ class Warehouse:
 		self.box_d = np.array((active_boxes,active_boxes)).T*self.rob_d[self.robot_carrier] # move the boxes by the amount equal to the robot carrying them 
 		self.box_c = self.box_c + self.box_d
 		
-		if self.counter % 1 == 0:
-			drop = self.swarm.dropoff_box(self)
-			
-			if any(drop) == 1:
-				active_id = np.argwhere(active_boxes==1).flatten()
-				drop_idx = np.argwhere(drop==1)[0]
-				box_n = active_id[drop_idx]
-				rob_n = self.robot_carrier[box_n] # robot IDs that have dropped a box just now
-				self.box_is_free[box_n] = 1 # mark boxes as free again
-				self.swarm.agent_has_box[rob_n] = 0 # mark robots as free again
+		# execute pickup/dropoff
+		self.execute_pickup_dropoff()
 		
 		self.swarm.compute_metrics()
 		self.counter += 1

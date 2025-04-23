@@ -65,7 +65,9 @@ class VizSim(Simulator):
             dot[i].set_data(x_data[i], y_data[i])
 
         for i in range(len(box)):
-            box[i].set_data(self.warehouse.box_c[i, 0], self.warehouse.box_c[i, 1])
+            x = [self.warehouse.box_c[i, 0]]
+            y = [self.warehouse.box_c[i, 1]]
+            box[i].set_data(x,y)
 
         h_x_vec, h_y_vec = self.generate_dot_heading_arrow()
         for i in range(self.swarm.number_of_agents):

@@ -6,8 +6,8 @@ dir_root = Path(__file__).resolve().parents[1]
 sys.path.append(str(dir_root))
 dir_root_2 = Path(__file__).resolve().parents[2]
 sys.path.append(str(dir_root_2))
-from lib import RedisConn, RedisKeys, Config
-from wh_sim import ExportRedisData, Simulator, ExportThresholdModel
+from lib import Config
+from wh_sim import Simulator
 from simulator import CFG_FILES, MODEL_ROOT, STATS_ROOT
 
 from flask import Flask, request, render_template, redirect, jsonify
@@ -42,8 +42,6 @@ GLOBAL = {
     "config": ex_avail,
     "simdata": {},
 }
-
-r = RedisConn()
 
 ####################
 
@@ -176,18 +174,13 @@ def run_experiment(ex_id, no_faults):
     default_cfg_file = CFG_FILES["default"]
     cfg_file = CFG_FILES["ex_1"]
     cfg_obj = Config(cfg_file, default_cfg_file, ex_id=ex_id)
-    data_model = ExportRedisData(export_vis_data=True, compute_roc=True)
     thresh_file = os.path.join(MODEL_ROOT, "%s_%s.txt" % (ex_id, "emin_sc"))
     stats_file = os.path.join(STATS_ROOT, "%s_%s.txt" % (ex_id, "emin_sc"))
-    ad_model = ExportThresholdModel(10, thresh_file, stats_file, 3, 0.15, 2)
 
     faults = [int(no_faults)]
     # Create simulator object
     sim = Simulator(
         cfg_obj,
-        data_model=data_model,
-        fault_count=faults,
-        ad_model=ad_model,
         random_seed=66764970,
     )
 

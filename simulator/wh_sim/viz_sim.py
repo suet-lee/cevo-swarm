@@ -39,9 +39,7 @@ class VizSim(Simulator):
 
     # iterate method called once per timestep
     def iterate(self, i, dot=None, box=None, h_line=None, cam_range=None):
-        self.warehouse.iterate(
-            self.cfg.get("heading_bias"), self.cfg.get("box_attraction")
-        )
+        self.warehouse.iterate(self.cfg.get("heading_bias"), self.cfg.get("box_attraction"))
         counter = self.warehouse.counter
 
         self.animate(i, counter, dot, box, h_line, cam_range)
@@ -58,14 +56,8 @@ class VizSim(Simulator):
 
     def animate(self, i, counter, dot=None, box=None, h_line=None, cam_range=None):
         cam_range.set_data(
-            [
-                self.warehouse.rob_c[i, 0]
-                for i in range(self.cfg.get("warehouse", "number_of_agents"))
-            ],
-            [
-                self.warehouse.rob_c[i, 1]
-                for i in range(self.cfg.get("warehouse", "number_of_agents"))
-            ],
+            [self.warehouse.rob_c[i, 0] for i in range(self.cfg.get("warehouse", "number_of_agents"))],
+            [self.warehouse.rob_c[i, 1] for i in range(self.cfg.get("warehouse", "number_of_agents"))],
         )
 
         x_data, y_data, _ = self.generate_dot_positional_data()
@@ -90,9 +82,7 @@ class VizSim(Simulator):
         save_dir = os.path.join(dir_path, "animation")
         plt.rc("text", usetex=True)
         plt.rc("font", family="serif")
-        plt.rcParams.update(
-            {"font.family": "serif", "text.usetex": True, "pdf.fonttype": 42}
-        )
+        plt.rcParams.update({"font.family": "serif", "text.usetex": True, "pdf.fonttype": 42})
 
         form = "pdf"
         save_path = os.path.join(save_dir, "%d.%s" % (counter, form))
@@ -138,18 +128,10 @@ class VizSim(Simulator):
 
         # assume all swarm radius same
         marker_size = 12.5
-        cam_range_marker_size = (
-            marker_size / self.swarm.robot_r[0] * self.swarm.camera_sensor_range_V[0]
-        )
+        cam_range_marker_size = marker_size / self.swarm.robot_r[0] * self.swarm.camera_sensor_range_V[0]
         (cam_range,) = ax.plot(
-            [
-                self.warehouse.rob_c[i, 0]
-                for i in range(self.cfg.get("warehouse", "number_of_agents"))
-            ],
-            [
-                self.warehouse.rob_c[i, 1]
-                for i in range(self.cfg.get("warehouse", "number_of_agents"))
-            ],
+            [self.warehouse.rob_c[i, 0] for i in range(self.cfg.get("warehouse", "number_of_agents"))],
+            [self.warehouse.rob_c[i, 1] for i in range(self.cfg.get("warehouse", "number_of_agents"))],
             "ko",
             markersize=cam_range_marker_size,
             # linestyle=":",
@@ -198,9 +180,7 @@ class VizSim(Simulator):
         h_x_vec, h_y_vec = self.generate_dot_heading_arrow()
         h_line = {}
         for i in range(self.swarm.number_of_agents):
-            (h_line[i],) = ax.plot(
-                h_x_vec[i], h_y_vec[i], linestyle="dashed", color="#4CB580"
-            )
+            (h_line[i],) = ax.plot(h_x_vec[i], h_y_vec[i], linestyle="dashed", color="#4CB580")
 
         plt.axis("square")
         plt.axis(

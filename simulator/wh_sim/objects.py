@@ -42,21 +42,13 @@ class Swarm:
             total_agents += num
             self.robot_r = np.append(self.robot_r, np.full(num, ag_obj.radius))
             self.robot_v = np.append(self.robot_v, np.full(num, ag_obj.max_v))
-            self.camera_sensor_range_V = np.append(
-                self.camera_sensor_range_V, np.full(num, ag_obj.camera_sensor_range)
-            )
-            self.robot_lifter = np.append(
-                self.robot_lifter, np.full(num, ag_obj.lifter_state)
-            )
+            self.camera_sensor_range_V = np.append(self.camera_sensor_range_V, np.full(num, ag_obj.camera_sensor_range))
+            self.robot_lifter = np.append(self.robot_lifter, np.full(num, ag_obj.lifter_state))
 
         self.number_of_agents = total_agents
         self.agent_has_box = np.zeros(self.number_of_agents)  # agents start with no box
-        self.heading = 0.0314 * np.random.randint(
-            -100, 100, self.number_of_agents
-        )  # initial heading for all robots is randomly chosen
-        self.computed_heading = (
-            self.heading
-        )  # this is computed heading after force calculations are completed
+        self.heading = 0.0314 * np.random.randint(-100, 100, self.number_of_agents)  # initial heading for all robots is randomly chosen
+        self.computed_heading = self.heading  # this is computed heading after force calculations are completed
         self.computed_heading_prev = {}  # stores previous computed heading
 
     def init_params(self, cfg):
@@ -109,9 +101,7 @@ class Swarm:
 
         # Compute euclidean (cdist) distance between agents and other agents
         self.agent_dist = cdist(rob_c, rob_c)
-        F_box, F_agent = self._generate_interobject_force(
-            box_c, box_r, rob_c, is_box_in_transit, box_attraction
-        )
+        F_box, F_agent = self._generate_interobject_force(box_c, box_r, rob_c, is_box_in_transit, box_attraction)
 
         # Compute distance to wall segments
         self.wall_dist = cdist(rob_c, map.wall_divisions)
@@ -129,17 +119,11 @@ class Swarm:
         self.computed_heading_prev[t] = self.computed_heading.tolist()
         # new heading due to vectors: this is actually the heading of the repelling force
         self.computed_heading = np.arctan2(F_y, F_x)
-        move_x = np.multiply(
-            self.robot_v, np.cos(self.computed_heading)
-        )  # Movement in x
-        move_y = np.multiply(
-            self.robot_v, np.sin(self.computed_heading)
-        )  # Movement in y
+        move_x = np.multiply(self.robot_v, np.cos(self.computed_heading))  # Movement in x
+        move_y = np.multiply(self.robot_v, np.sin(self.computed_heading))  # Movement in y
 
         # Total change in movement of agent (robot deviation)
-        rob_d = -np.array(
-            [[move_x[n], move_y[n]] for n in range(0, self.number_of_agents)]
-        )  # Negative to avoid collisions
+        rob_d = -np.array([[move_x[n], move_y[n]] for n in range(0, self.number_of_agents)])  # Negative to avoid collisions
         return rob_d
 
     def update_hook(self):
@@ -204,15 +188,11 @@ class Swarm:
                 pickup = np.random.binomial(1, p)
                 # print("pick  ",d," ",p,'\n')
                 if pickup and warehouse.swarm.set_agent_box_state(closest_r, 1):
-                    warehouse.box_is_free[box_id] = (
-                        0  # change box state to 0 (not free, on a robot)
-                    )
+                    warehouse.box_is_free[box_id] = 0  # change box state to 0 (not free, on a robot)
                     warehouse.box_c[box_id] = warehouse.rob_c[
                         closest_r
                     ]  # change the box centre so it is aligned with its robot carrier's centre
-                    warehouse.robot_carrier[box_id] = (
-                        closest_r  # set the robot_carrier for box b to that robot ID
-                    )
+                    warehouse.robot_carrier[box_id] = closest_r  # set the robot_carrier for box b to that robot ID
 
     def dropoff_box(self, warehouse):
         # active box coordinates
@@ -223,9 +203,7 @@ class Swarm:
 
         rob_id = warehouse.robot_carrier[active_box_id]
         d = cdist(np.tile(warehouse.ap, (len(active_c), 1)), active_c)
-        d_ = (
-            d[0] * 2 / self.camera_sensor_range_V[rob_id]
-        )  # scale down by factor cam_range/2
+        d_ = d[0] * 2 / self.camera_sensor_range_V[rob_id]  # scale down by factor cam_range/2
         idx = rob_id * warehouse.number_of_box_types + warehouse.box_types[rob_id]
         p = self.D_m[idx] / (1 + d_ * d_)
         p = self._F(p, self.box_in_range[rob_id])
@@ -240,13 +218,9 @@ class Swarm:
     def _generate_wall_avoidance_force(self, rob_c, map):  # input the warehouse map
         ## distance from agents to walls ##
         # distance from the vertical walls to your agent (horizontal distance between x coordinates)
-        difference_in_x = np.array(
-            [map.planeh - rob_c[n][1] for n in range(self.number_of_agents)]
-        )
+        difference_in_x = np.array([map.planeh - rob_c[n][1] for n in range(self.number_of_agents)])
         # distance from the horizontal walls to your agent (vertical distance between y coordinates)
-        difference_in_y = np.array(
-            [map.planev - rob_c[n][0] for n in range(self.number_of_agents)]
-        )
+        difference_in_y = np.array([map.planev - rob_c[n][0] for n in range(self.number_of_agents)])
 
         # x coordinates of the agent's centre coordinate
         agentsx = rob_c.T[0]
@@ -254,12 +228,8 @@ class Swarm:
         agentsy = rob_c.T[1]
 
         ## Are the agents within the limits of the warehouse?
-        x_lower_wall_limit = (
-            agentsx[:, np.newaxis] >= map.limh.T[0]
-        )  # limh is for horizontal walls. x_lower is the bottom of the square
-        x_upper_wall_limit = (
-            agentsx[:, np.newaxis] <= map.limh.T[1]
-        )  # x_upper is the top bar of the warehouse square
+        x_lower_wall_limit = agentsx[:, np.newaxis] >= map.limh.T[0]  # limh is for horizontal walls. x_lower is the bottom of the square
+        x_upper_wall_limit = agentsx[:, np.newaxis] <= map.limh.T[1]  # x_upper is the top bar of the warehouse square
         # Interaction combines the lower and upper limit information to give a TRUE or FALSE value to the agents depending on if it is IN/OUT the warehouse boundaries
         interaction = x_upper_wall_limit * x_lower_wall_limit
 
@@ -272,9 +242,7 @@ class Swarm:
         Fy = Fy * difference_in_x * interaction
 
         # Same as x boundaries but now in y
-        y_lower_wall_limit = (
-            agentsy[:, np.newaxis] >= map.limv.T[0]
-        )  # limv is vertical walls
+        y_lower_wall_limit = agentsy[:, np.newaxis] >= map.limv.T[0]  # limv is vertical walls
         y_upper_wall_limit = agentsy[:, np.newaxis] <= map.limv.T[1]
         interaction = y_lower_wall_limit * y_upper_wall_limit
         Fx = np.exp(-2 * abs(difference_in_y) + repulsion)
@@ -299,16 +267,12 @@ class Swarm:
 
         if heading_bias:
             carriers = self.agent_has_box == 1
-            heading_x = (
-                heading_x + carriers * heading_bias
-            )  # bias on heading if carrying a box
+            heading_x = heading_x + carriers * heading_bias  # bias on heading if carrying a box
 
         return -np.array(list(zip(heading_x, heading_y)))
 
     # Computes repulsion forces: a negative force means comes out as attraction
-    def _generate_interobject_force(
-        self, box_c, box_r, rob_c, is_box_in_transit, box_attraction=False
-    ):
+    def _generate_interobject_force(self, box_c, box_r, rob_c, is_box_in_transit, box_attraction=False):
         margin = self.repulsion_o  # np.minimum(self.repulsion_d, self.camera_sensor_range_V) @TODO allow for collision behaviour
         # TODO allow for a vector of robot_r (heterogeneous agents)
         self.too_close = (
@@ -316,19 +280,13 @@ class Swarm:
         )  # TRUE if agent is too close to another agent (enable collision avoidance)
 
         # Compute euclidean (cdist) distance between boxes and agents
-        self.box_dist = cdist(
-            box_c, rob_c
-        )  # distance between all the boxes and all the agents
+        self.box_dist = cdist(box_c, rob_c)  # distance between all the boxes and all the agents
         self.too_close_boxes = (
             self.box_dist < 2 * box_r + margin
         )  # TRUE if agent is too close to a box (enable collision avoidance). Does not avoid box if agent does not have a box but this is considered later in the code (not_free*F_box)
 
-        proximity_to_robots = (
-            rob_c[:, :, np.newaxis] - rob_c.T[np.newaxis, :, :]
-        )  # Compute vectors between agents
-        proximity_to_boxes = (
-            box_c[:, :, np.newaxis] - rob_c.T[np.newaxis, :, :]
-        )  # Computer vectors between agents and boxes
+        proximity_to_robots = rob_c[:, :, np.newaxis] - rob_c.T[np.newaxis, :, :]  # Compute vectors between agents
+        proximity_to_boxes = box_c[:, :, np.newaxis] - rob_c.T[np.newaxis, :, :]  # Computer vectors between agents and boxes
 
         F_box = (
             self.too_close_boxes[:, np.newaxis, :] * proximity_to_boxes
@@ -343,9 +301,7 @@ class Swarm:
 
         if box_attraction:
             # Compute box attraction between free robots and free boxes
-            too_close_free_boxes = (
-                self.box_dist < self.camera_sensor_range_V
-            ) & np.transpose(
+            too_close_free_boxes = (self.box_dist < self.camera_sensor_range_V) & np.transpose(
                 np.tile((is_box_in_transit == 0), (self.number_of_agents, 1))
             )  # attraction force from free boxes
             F_box_free = too_close_free_boxes[:, np.newaxis, :] * proximity_to_boxes
@@ -358,9 +314,7 @@ class Swarm:
         else:
             F_box_total = F_box_occupied
 
-        F_agent = (
-            self.too_close[:, np.newaxis, :] * proximity_to_robots
-        )  # Calc repulsion vector on agent due to proximity to other agents
+        F_agent = self.too_close[:, np.newaxis, :] * proximity_to_robots  # Calc repulsion vector on agent due to proximity to other agents
         F_agent = np.sum(F_agent, axis=0).T  # Sum the repulsion vectors
 
         return (F_box_total, F_agent)
@@ -414,9 +368,7 @@ class Swarm:
         # Local
         # self.agent_dist # number of agents in range
         # self.wall_dist # walls in range
-        self.box_in_range = sum(
-            self.box_dist < self.camera_sensor_range_V[0]
-        )  # boxes in range
+        self.box_in_range = sum(self.box_dist < self.camera_sensor_range_V[0])  # boxes in range
         # self.in_division # which zone it's currently in
         # self.box_type # what type of box it's carrying
 

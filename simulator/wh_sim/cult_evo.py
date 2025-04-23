@@ -51,9 +51,7 @@ class CA(Warehouse):
         # self.bs_S = self._S # separation
 
         # Influence/update factors (how influential or resistant an agent is in social exchange)
-        self.influence_F = np.random.uniform(
-            0, 1, self.number_of_agents
-        )  # TODO intialise - how? random for now
+        self.influence_F = np.random.uniform(0, 1, self.number_of_agents)  # TODO intialise - how? random for now
         self.update_F = np.random.uniform(0, 1, self.number_of_agents)
 
     def update_hook(self):
@@ -81,9 +79,7 @@ class CA(Warehouse):
 
         # handles logic to move boxes with robots/drop boxes
         t = self.counter % 10
-        self.rob_c_prev[t] = (
-            self.rob_c
-        )  # Save a record of centre coordinates before update
+        self.rob_c_prev[t] = self.rob_c  # Save a record of centre coordinates before update
         self.rob_c = self.rob_c + self.rob_d  # robots centres change as they move
         active_boxes = self.box_is_free == 0  # boxes which are on a robot
         self.box_d = (

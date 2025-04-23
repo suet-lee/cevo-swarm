@@ -125,9 +125,7 @@ class Simulator:
 
     # iterate method called once per timestep
     def iterate(self):
-        self.warehouse.iterate(
-            self.cfg.get("heading_bias"), self.cfg.get("box_attraction")
-        )
+        self.warehouse.iterate(self.cfg.get("heading_bias"), self.cfg.get("box_attraction"))
         counter = self.warehouse.counter
 
         if self.verbose:

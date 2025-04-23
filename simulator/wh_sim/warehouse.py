@@ -21,15 +21,11 @@ class Warehouse:
     ):
         self.width = width
         self.height = height
-        self.box_range = (
-            box_radius * 2.0
-        )  # box_range # range at which a box can be picked up
+        self.box_range = box_radius * 2.0  # box_range # range at which a box can be picked up
         self.number_of_boxes = number_of_boxes
         self.box_radius = box_radius  # physical radius of the box (approximated to a circle even though square in animation)
 
-        self.box_is_free = np.ones(
-            self.number_of_boxes
-        )  # Box states set to 1 = Free (not on a robots), if = 0 = Not free (on a robot)
+        self.box_is_free = np.ones(self.number_of_boxes)  # Box states set to 1 = Free (not on a robots), if = 0 = Not free (on a robot)
         self.counter = 0  # time starts at 0s or time step = 0
 
         # Initialise the positions of boxes and robots
@@ -47,29 +43,21 @@ class Warehouse:
 
         self.box_c = np.array(self.box_c)  # convert list to array
         self.rob_c = np.array(self.rob_c)  # convert list to array
-        self.box_d = np.zeros(
-            (self.number_of_boxes, 2)
-        )  # box centre coordinate deviation (how far the box moves in one time step)
+        self.box_d = np.zeros((self.number_of_boxes, 2))  # box centre coordinate deviation (how far the box moves in one time step)
         self.robot_carrier = np.full(
             (self.number_of_boxes), -1
         )  # Value at index = box number is the robot number that is currently moving that box
 
     def generate_object_positions(self, conf):
         if conf == self.RANDOM_OBJ_POS:
-            possible_x = int(
-                (self.width) / (self.box_radius * 2)
-            )  # number of positions possible on the x axis
-            possible_y = int(
-                (self.height) / (self.box_radius * 2)
-            )  # number of positions possible on the y axis
+            possible_x = int((self.width) / (self.box_radius * 2))  # number of positions possible on the x axis
+            possible_y = int((self.height) / (self.box_radius * 2))  # number of positions possible on the y axis
             list_n = []  # empty list of possible positions
             for x in range(possible_x):
                 for y in range(possible_y):
                     list_n.append([x, y])  # list of possible positions in the warehouse
 
-            N = (
-                self.number_of_boxes + self.swarm.number_of_agents
-            )  # total number of units to assign positions to
+            N = self.number_of_boxes + self.swarm.number_of_agents  # total number of units to assign positions to
             XY_idx = np.random.choice(
                 len(list_n), N, replace=False
             )  # select N unique coordinates at random from the list of possible positions
@@ -87,17 +75,13 @@ class Warehouse:
             for b in range(self.number_of_boxes):
                 self.box_c.append(c_select[b])  # assign initial box positions
             for r in range(self.swarm.number_of_agents):
-                self.rob_c.append(
-                    c_select[r + self.number_of_boxes]
-                )  # assign initial robot positions
+                self.rob_c.append(c_select[r + self.number_of_boxes])  # assign initial robot positions
 
         elif conf == self.OBJ_POS_1:
             possible_x_half = int(
                 (self.width / 2) / (self.box_radius * 2)
             )  # number of positions possible on the x axis in one side of warehosue
-            possible_y = int(
-                (self.height) / (self.box_radius * 2)
-            )  # number of positions possible on the y axis
+            possible_y = int((self.height) / (self.box_radius * 2))  # number of positions possible on the y axis
             list_n_box = []  # empty list of possible positions
             list_n_agent = []  # empty list of possible positions
             for x in range(possible_x_half):
@@ -124,9 +108,7 @@ class Warehouse:
                         self.box_radius + (self.box_radius * 2) * XY_box[j][1],
                     ]
                 )
-            for j in range(
-                self.swarm.number_of_agents
-            ):  # for the total number of units
+            for j in range(self.swarm.number_of_agents):  # for the total number of units
                 c_select.append(
                     [
                         self.box_radius + (self.box_radius * 2) * XY_agent[j][0],
@@ -137,9 +119,7 @@ class Warehouse:
             for b in range(self.number_of_boxes):
                 self.box_c.append(c_select[b])  # assign initial box positions
             for r in range(self.swarm.number_of_agents):
-                self.rob_c.append(
-                    c_select[r + self.number_of_boxes]
-                )  # assign initial robot positions
+                self.rob_c.append(c_select[r + self.number_of_boxes])  # assign initial robot positions
 
         else:
             raise Exception("Object position not valid")
@@ -177,15 +157,11 @@ class Warehouse:
             active_id = np.argwhere(active_boxes == 1).flatten()
             drop_idx = np.argwhere(drop == 1)[0]
             box_n = active_id[drop_idx]
-            rob_n = self.robot_carrier[
-                box_n
-            ]  # robot IDs that have dropped a box just now
+            rob_n = self.robot_carrier[box_n]  # robot IDs that have dropped a box just now
             self.box_is_free[box_n] = 1  # mark boxes as free again
             self.swarm.agent_has_box[rob_n] = 0  # mark robots as free again
 
-    def iterate(
-        self, heading_bias=False, box_attraction=False
-    ):  # moves the robot and box positions forward in one time step
+    def iterate(self, heading_bias=False, box_attraction=False):  # moves the robot and box positions forward in one time step
         self.rob_d = self.swarm.iterate(
             self.rob_c,
             self.box_c,
@@ -198,9 +174,7 @@ class Warehouse:
 
         # handles logic to move boxes with robots/drop boxes
         t = self.counter % 10
-        self.rob_c_prev[t] = (
-            self.rob_c
-        )  # Save a record of centre coordinates before update
+        self.rob_c_prev[t] = self.rob_c  # Save a record of centre coordinates before update
         self.rob_c = self.rob_c + self.rob_d  # robots centres change as they move
         active_boxes = self.box_is_free == 0  # boxes which are on a robot
         self.box_d = (
@@ -269,25 +243,16 @@ class Map:
         self.walls = np.array([])  # same as obsticales variable but as a numpy array
         self.wallh = np.array([])  # a list of only horizontal walls
         self.wallv = np.array([])  # a list of only vertical walls
-        self.planeh = np.array(
-            []
-        )  # a list of horizontal avoidance planes formed by walls
-        self.planev = np.array(
-            []
-        )  # a list of horizontal vertical planes formed by walls
+        self.planeh = np.array([])  # a list of horizontal avoidance planes formed by walls
+        self.planev = np.array([])  # a list of horizontal vertical planes formed by walls
 
         self.generate()
         self.generate_wall_divisions(wall_divisions)
 
     # @TODO could wall generation be refactored?
     def generate(self):
-        map_bounds = BoxBounds(
-            self.height, self.width, [self.width / 2, self.height / 2]
-        )
-        [
-            self.obstacles.append(map_bounds.walls[x])
-            for x in range(0, len(map_bounds.walls))
-        ]
+        map_bounds = BoxBounds(self.height, self.width, [self.width / 2, self.height / 2])
+        [self.obstacles.append(map_bounds.walls[x]) for x in range(0, len(map_bounds.walls))]
 
         self.walls = np.zeros((2 * len(self.obstacles), 2))
         self.wallh = np.zeros((2 * len(self.obstacles), 2))
@@ -299,48 +264,32 @@ class Map:
 
         for n in range(0, len(self.obstacles)):
             if self.obstacles[n].start[0] == self.obstacles[n].end[0]:
-                self.wallv[2 * n] = np.array(
-                    [self.obstacles[n].start[0], self.obstacles[n].start[1]]
-                )
-                self.wallv[2 * n + 1] = np.array(
-                    [self.obstacles[n].end[0], self.obstacles[n].end[1]]
-                )
+                self.wallv[2 * n] = np.array([self.obstacles[n].start[0], self.obstacles[n].start[1]])
+                self.wallv[2 * n + 1] = np.array([self.obstacles[n].end[0], self.obstacles[n].end[1]])
 
                 self.planev[n] = self.wallv[2 * n][0]
                 self.limv[n] = np.array(
                     [
-                        np.min([self.obstacles[n].start[1], self.obstacles[n].end[1]])
-                        - 0.5,
-                        np.max([self.obstacles[n].start[1], self.obstacles[n].end[1]])
-                        + 0.5,
+                        np.min([self.obstacles[n].start[1], self.obstacles[n].end[1]]) - 0.5,
+                        np.max([self.obstacles[n].start[1], self.obstacles[n].end[1]]) + 0.5,
                     ]
                 )
 
             # if wall is horizontal
             if self.obstacles[n].start[1] == self.obstacles[n].end[1]:
-                self.wallh[2 * n] = np.array(
-                    [self.obstacles[n].start[0], self.obstacles[n].start[1]]
-                )
-                self.wallh[2 * n + 1] = np.array(
-                    [self.obstacles[n].end[0], self.obstacles[n].end[1]]
-                )
+                self.wallh[2 * n] = np.array([self.obstacles[n].start[0], self.obstacles[n].start[1]])
+                self.wallh[2 * n + 1] = np.array([self.obstacles[n].end[0], self.obstacles[n].end[1]])
 
                 self.planeh[n] = self.wallh[2 * n][1]
                 self.limh[n] = np.array(
                     [
-                        np.min([self.obstacles[n].start[0], self.obstacles[n].end[0]])
-                        - 0.5,
-                        np.max([self.obstacles[n].start[0], self.obstacles[n].end[0]])
-                        + 0.5,
+                        np.min([self.obstacles[n].start[0], self.obstacles[n].end[0]]) - 0.5,
+                        np.max([self.obstacles[n].start[0], self.obstacles[n].end[0]]) + 0.5,
                     ]
                 )
 
-            self.walls[2 * n] = np.array(
-                [self.obstacles[n].start[0], self.obstacles[n].start[1]]
-            )
-            self.walls[2 * n + 1] = np.array(
-                [self.obstacles[n].end[0], self.obstacles[n].end[1]]
-            )
+            self.walls[2 * n] = np.array([self.obstacles[n].start[0], self.obstacles[n].start[1]])
+            self.walls[2 * n + 1] = np.array([self.obstacles[n].end[0], self.obstacles[n].end[1]])
 
     def generate_wall_divisions(self, divisions=10):
         wall_divisions = np.array([])

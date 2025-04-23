@@ -1,0 +1,8 @@
+- requirements.txt
+- CA_Swarm never defined: https://github.com/suet-lee/cevo-swarm/blob/c289b3ba2994cc7b46eea680f6d6f5b0728ed891/simulator/wh_sim/sim.py#L63
+  -> changed to Swarm, missing the influence_r parameter
+- run_ex.sh: https://github.com/suet-lee/cevo-swarm/blob/c289b3ba2994cc7b46eea680f6d6f5b0728ed891/run_ex.sh#L16
+  - no run_ex_multic.py script
+- from lib import RedisConn, RedisKeys, Config
+- from wh_sim import ExportRedisData, Simulator, ExportThresholdModel
+ -> removed

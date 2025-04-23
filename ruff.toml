@@ -1,0 +1,11 @@
+line-length = 140
+
+[format]
+docstring-code-format = false
+quote-style = "preserve"
+
+
+[lint]
+unfixable = ["F401"]
+ignore = ["F403"]
+# F403 import *` used; unable to detect undefined names

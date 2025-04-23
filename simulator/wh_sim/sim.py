@@ -13,8 +13,7 @@ import datetime
 import time
 import json
 
-from . import Swarm, BoidsSwarm, CA_Swarm, Warehouse, Robot
-
+from . import Swarm, BoidsSwarm, Warehouse, Robot
 
 class Simulator:
     def __init__(
@@ -63,11 +62,11 @@ class Simulator:
 
         # CA evo swarm
         if behaviour == 1:
-            swarm = CA_Swarm(
+            swarm = Swarm(
                 repulsion_o=cfg.get("warehouse", "repulsion_object"),
                 repulsion_w=cfg.get("warehouse", "repulsion_wall"),
-                heading_change_rate=cfg.get("heading_change_rate"),
-                influence_r=cfg.get("influence_r"),
+                heading_change_rate=cfg.get("heading_change_rate")#,
+                #influence_r=cfg.get("influence_r"),
             )
         # default random walk
         else:

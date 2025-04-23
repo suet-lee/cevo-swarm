@@ -7,7 +7,7 @@ import time
 
 ex_id = "e_1"
 iterations = 200
-verbose = False
+verbose = True
 batch_id = "heading_bias"
 
 ###### Config class ######

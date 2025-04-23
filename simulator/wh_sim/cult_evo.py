@@ -5,7 +5,9 @@ dir_root = Path(__file__).resolve().parents[1]
 
 import numpy as np
 
-from . import Swarm, BoidsSwarm
+from . import Swarm, BoidsSwarm #, Warehouse doesn't work
+# ImportError: cannot import name 'Warehouse' from partially initialized module 'simulator.wh_sim' (most likely due to a circular import) (/Users/nils/dev/master/cevo-swarm/simulator/wh_sim/__init__.py)
+from .warehouse import Warehouse
 
 
 # Implements swarm with cultural evolution
@@ -21,7 +23,7 @@ class CA(Warehouse):
         number_of_boxes,
         box_radius,
         swarm,
-        init_object_positions=RANDOM_OBJ_POS,
+        init_object_positions=Warehouse.RANDOM_OBJ_POS,
         box_type_ratio=[1],
     ):
         super().__init__(

@@ -6,4 +6,4 @@ quote-style = "preserve"
 
 
 [lint]
-ignore-init-module-imports = false
+unfixable = ["F401"]

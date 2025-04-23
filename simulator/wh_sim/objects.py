@@ -164,6 +164,8 @@ class Swarm:
         boxes_to_pickup = warehouse.is_box_free() * is_closest_rob_in_range
         to_pickup = np.argwhere(boxes_to_pickup == 1)
 
+        self.box_in_range = sum(self.box_dist < self.camera_sensor_range_V[0])
+
         # needs to be a loop (rather than vectorised) in case two robots are close to the same box
         for box_id in to_pickup:
             closest_r = closest_rob_id[box_id][0]

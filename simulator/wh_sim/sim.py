@@ -13,7 +13,7 @@ import datetime
 import time
 import json
 
-from . import Swarm, BoidsSwarm, CA_Swarm, Warehouse, Robot
+from . import Swarm, BoidsSwarm, CA, Warehouse, Robot
 
 class Simulator:
 
@@ -37,15 +37,17 @@ class Simulator:
             self.swarm = self.build_swarm(self.cfg)
         except Exception as e:
             raise e
-        
-        self.warehouse = Warehouse(
+    
+        # CA evo
+        self.warehouse = CA(
             self.cfg.get('warehouse', 'width'),
             self.cfg.get('warehouse', 'height'), 
             self.cfg.get('warehouse', 'number_of_boxes'), 
             self.cfg.get('warehouse', 'box_radius'), 
             self.swarm,
             self.cfg.get('warehouse', 'object_position'),
-            self.cfg.get('box_type_ratio'))     
+            self.cfg.get('box_type_ratio'),
+            self.cfg.get('influence_r'))     
 
         self.warehouse.generate_ap(self.cfg)       
 
@@ -56,23 +58,11 @@ class Simulator:
             camera_sensor_range=cfg.get('robot', 'camera_sensor_range')
         )
         
-        behaviour = cfg.get('swarm_behaviour')
-        
-        # CA evo swarm
-        if behaviour == 1:
-            swarm = CA_Swarm(
-                repulsion_o=cfg.get('warehouse', 'repulsion_object'), 
-                repulsion_w=cfg.get('warehouse', 'repulsion_wall'),
-                heading_change_rate=cfg.get('heading_change_rate'),
-                influence_r=cfg.get('influence_r')
-            )
-        # default random walk
-        else:
-            swarm = Swarm(
-                repulsion_o=cfg.get('warehouse', 'repulsion_object'), 
-                repulsion_w=cfg.get('warehouse', 'repulsion_wall'),
-                heading_change_rate=cfg.get('heading_change_rate')
-            )
+        swarm = Swarm(
+            repulsion_o=cfg.get('warehouse', 'repulsion_object'), 
+            repulsion_w=cfg.get('warehouse', 'repulsion_wall'),
+            heading_change_rate=cfg.get('heading_change_rate')
+        )
 
         swarm.add_agents(robot_obj, cfg.get('warehouse', 'number_of_agents'))
         swarm.generate()  

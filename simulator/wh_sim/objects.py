@@ -55,30 +55,34 @@ class Swarm:
         # box interaction probabilities
         culture = cfg.get('culture')
 
-        self.base_pickup_p = []
-        self.base_dropoff_p = []
-        self.P_m = np.array([])
-        self.D_m = np.array([])
-        for subculture in culture:
-            no_agents = math.floor(self.number_of_agents*subculture['ratio'])
-            base_pickup_p = [subculture['base_pickup_p']]*no_agents
-            base_dropoff_p = [subculture['base_dropoff_p']]*no_agents
-            P_m = np.tile(subculture['P_m'],(1,no_agents)).flatten()
-            D_m = np.tile(subculture['P_m'],(1,no_agents)).flatten()
-            self.base_pickup_p += base_pickup_p
-            self.base_dropoff_p += base_dropoff_p
+        self.P_m = np.array([]) # pickup probability parameter
+        self.D_m = np.array([]) # dropoff probability parameter
+        self.SC = np.array([]) # amplification factor threshold for stone count
+        self.r0 = np.array([]) # wall template radius from aggregation point (i.e. nest site)
+        for subc in culture:
+            no_agents = math.floor(self.number_of_agents*subc['ratio'])
+            no_ap = len(cfg.get('ap'))
+            no_box_t = len(cfg.get('box_type_ratio'))
+            # probably a better way to unpack variables by list.pop() or next()
+            P_m_vec = subc['params'][:no_ap]
+            D_m_vec = subc['params'][no_ap:2*no_ap]
+            SC_vec = subc['params'][2*no_ap:2*no_ap+no_box_t]
+            r0_vec = subc['params'][2*no_ap+no_box_t:2*no_ap+2*no_box_t]
+            P_m = np.tile(P_m_vec,(1,no_agents)).flatten()
+            D_m = np.tile(D_m_vec,(1,no_agents)).flatten()
+            SC = np.tile(SC_vec,(1,no_agents)).flatten()
+            r0 = np.tile(r0_vec,(1,no_agents)).flatten()
             self.P_m = np.concatenate((self.P_m,P_m))
             self.D_m = np.concatenate((self.D_m,D_m))
-        
-        self.base_pickup_p = np.array(self.base_pickup_p)
-        self.base_dropoff_p = np.array(self.base_dropoff_p)
+            self.SC = np.concatenate((self.SC,SC))
+            self.r0 = np.concatenate((self.r0,r0))
 
-        # reduce parameters below
-        # add factor for box type
         self.G_max = 1.5
         self.G_min = 0.2
         self.F_max = 1.5
         self.F_min = 0.2
+        self.base_pickup_p = 0.5
+        self.base_dropoff_p = 0.1
 
     # @TODO allow for multiple behaviours, heterogeneous swarm
     def iterate(self, *args, **kwargs):
@@ -165,7 +169,7 @@ class Swarm:
                 box_type = warehouse.box_types[box_id]
                 # if points out of range, probability of pickup is fixed at base rate
                 if d > self.camera_sensor_range_V[closest_r]:
-                    p = self.base_pickup_p[closest_r]
+                    p = self.base_pickup_p
                 else:
                     d_ = (d*2/self.camera_sensor_range_V[closest_r]).flatten()
                     P_m = self.P_m[closest_r*warehouse.number_of_box_types+box_type]
@@ -186,7 +190,7 @@ class Swarm:
         if len(active_c) == 0:
             return []
         
-        rob_id = warehouse.robot_carrier[active_box_id]
+        rob_id = warehouse.robot_carrier[active_box_id] # vector of carriers
         d = cdist(np.tile(warehouse.ap, (len(active_c),1)), active_c)
         d_ = d[0]*2/self.camera_sensor_range_V[rob_id] # scale down by factor cam_range/2
         idx = rob_id*warehouse.number_of_box_types+warehouse.box_types[rob_id]
@@ -194,7 +198,7 @@ class Swarm:
         p = self._F(p,self.box_in_range[rob_id])
         # if points out of range, probability of dropoff is fixed at base rate
         in_range = (d[0] <= self.camera_sensor_range_V[rob_id])
-        p = p*in_range + self.base_dropoff_p[rob_id]*(1-in_range)
+        p = p*in_range + self.base_dropoff_p*(1-in_range)
         drop = np.random.binomial(1,p).flatten()
         # print("drop  ",d[0]," ",p,"   ",in_range,'\n')
         return drop

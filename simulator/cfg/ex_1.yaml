@@ -2,19 +2,32 @@
 
 e_1:
   data_dir: "e_1"
-  description: "2 box types, 2 AP, 1 culture"
-  swarm_behaviour: 1
-  box_type_ratio: [0.5,0.5]
+  description: "1 box type, 1 AP, 1 culture"
+  box_type_ratio: [1.0]
   ap:
-    - [0.25,0.25]
-    - [0.75,0.75]
+    - [0.5,0.5]
 
   culture:
     - ratio: 1.0
-      base_pickup_p: 0.5
-      base_dropoff_p: 0.1
-      P_m: [0.9,0.1]
-      D_m: [0.8,0.8]
-      ap_f: [2,1,1,1]
+      params: [0.9,0.8,0.5,0.5]
+      # order: Pm, D_m, SC, r0
+
+  influence_r: 100
+
+e_2:
+  data_dir: "e_1"
+  description: "2 box types, 1 AP, 1 culture"
+  box_type_ratio: [0.5,0.5]
+  ap:
+    - [0.5,0.5]
+
+  culture:
+    - ratio: 1.0
+      params: [0.9,0.8,0.5,0.3,0.5,0.3]
+      # base_pickup_p: 0.5
+      # base_dropoff_p: 0.1
+      # P_m: [0.9,0.1]
+      # D_m: [0.8,0.8]
+      # ap_f: [2,1,1,1]
 
   influence_r: 100

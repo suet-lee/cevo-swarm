@@ -118,13 +118,9 @@ class Warehouse:
 		self.swarm.pickup_box(self)
 		drop = self.swarm.dropoff_box(self)
 		
-		if any(drop) == 1:
-			active_boxes = self.box_is_free == 0
-			active_id = np.argwhere(active_boxes==1).flatten()
-			drop_idx = np.argwhere(drop==1)[0]
-			box_n = active_id[drop_idx]
-			rob_n = self.robot_carrier[box_n] # robot IDs that have dropped a box just now
-			self.box_is_free[box_n] = 1 # mark boxes as free again
+		if len(drop):
+			rob_n = self.robot_carrier[drop] # robot IDs that have dropped a box just now
+			self.box_is_free[drop] = 1 # mark boxes as free again
 			self.swarm.agent_has_box[rob_n] = 0 # mark robots as free again
 
 	def iterate(self, heading_bias=False, box_attraction=False): # moves the robot and box positions forward in one time step

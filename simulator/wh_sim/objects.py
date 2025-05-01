@@ -172,6 +172,8 @@ class Swarm:
                     p = self.base_pickup_p
                 else:
                     d_ = (d*2/self.camera_sensor_range_V[closest_r]).flatten()
+                    # need to do: get ap_idx
+                    # idx = closest_r*len(warehouse.ap)+ap_idx
                     P_m = self.P_m[closest_r*warehouse.number_of_box_types+box_type]
                     p = P_m*( 1 - 1/(1+d_*d_) ).flatten()
                     p = self._G(p, self.box_in_range[closest_r])
@@ -192,16 +194,22 @@ class Swarm:
         
         rob_id = warehouse.robot_carrier[active_box_id] # vector of carriers
         d = cdist(np.tile(warehouse.ap, (len(active_c),1)), active_c)
-        d_ = d[0]*2/self.camera_sensor_range_V[rob_id] # scale down by factor cam_range/2
-        idx = rob_id*warehouse.number_of_box_types+warehouse.box_types[rob_id]
-        p = self.D_m[idx]/(1+d_*d_)
+        d = d[:len(warehouse.ap)]
+        # get the closest aggregation point
+        d1 = np.min(d,axis=0)
+        ap_idx = np.argmin(d,axis=0)
+        d2 = d1*2/self.camera_sensor_range_V[rob_id] # scale down by factor cam_range/2
+        idx = rob_id*len(warehouse.ap)+ap_idx
+        p = self.D_m[idx]/(1+d2*d2)
         p = self._F(p,self.box_in_range[rob_id])
         # if points out of range, probability of dropoff is fixed at base rate
-        in_range = (d[0] <= self.camera_sensor_range_V[rob_id])
+        in_range = (d1 <= self.camera_sensor_range_V[rob_id])
         p = p*in_range + self.base_dropoff_p*(1-in_range)
         drop = np.random.binomial(1,p).flatten()
-        # print("drop  ",d[0]," ",p,"   ",in_range,'\n')
-        return drop
+        drop_idx = np.argwhere(drop==1).flatten()
+        drop_box_id = active_box_id[drop_idx]
+        # print("drop  ",d," ",p,"   ",in_range, drop,'\n')
+        return drop_box_id
 		
     ## Avoidance behaviour for avoiding the warehouse walls ##		
     def _generate_wall_avoidance_force(self, rob_c, map): # input the warehouse map 

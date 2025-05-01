@@ -13,6 +13,13 @@ e_1:
       params: [0.9,0.1,0.8,0.1,0.5,0.4,0.5,0.4]
       # params: [0.9,0.8,0.5,0.5]
       # order: Pm, D_m, SC, r0
+      use_fixed_rates: true # Same across all agents in a subculture,
+      influence_rate: 0.6
+      resistance_rate: 0.4
+      # OR Randomly assigned per agent within a range :
+      # use_fixed_rates: false
+      # influence_range: [0.4, 0.8]
+      # resistance_range: [0.3, 0.7]
 
   influence_r: 100
 
@@ -31,5 +38,12 @@ e_2:
       # P_m: [0.9,0.1]
       # D_m: [0.8,0.8]
       # ap_f: [2,1,1,1]
+      use_fixed_rates: true # Same across all agents in a subculture,
+      influence_rate: 0.6
+      resistance_rate: 0.4
+      # OR Randomly assigned per agent within a range :
+      # use_fixed_rates: false
+      # influence_range: [0.4, 0.8]
+      # resistance_range: [0.3, 0.7]
 
   influence_r: 100

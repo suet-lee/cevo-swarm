@@ -20,7 +20,7 @@ class CA(Warehouse):
     def __init__(self, width, height, number_of_boxes, box_radius, swarm,
 		init_object_positions=Warehouse.RANDOM_OBJ_POS, box_type_ratio=[1], influence_r=100):
         super().__init__(width, height, number_of_boxes, box_radius, swarm,
-		    init_object_positions=Warehouse.RANDOM_OBJ_POS, box_type_ratio=[1])
+		    init_object_positions=Warehouse.RANDOM_OBJ_POS, box_type_ratio=box_type_ratio)
         
         self.has_init_params = False
         self.influence_r = influence_r

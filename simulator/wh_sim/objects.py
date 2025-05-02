@@ -112,11 +112,11 @@ class Swarm:
         self.BS_r0 = self.r0
 
         # fixed parameters: in future these could also be evolved in the belief space
-        self.G_max = 1.5
-        self.G_min = 0.2
-        self.F_max = 1.5
-        self.F_min = 0.2
-        self.base_pickup_p = 0.5
+        self.G_max = 0.55
+        self.G_min = 0.01
+        self.F_max = 0.55
+        self.F_min = 0.01
+        self.base_pickup_p = 0.1
         self.base_dropoff_p = 0.1
 
     # @TODO allow for multiple behaviours, heterogeneous swarm
@@ -140,7 +140,7 @@ class Swarm:
         F_wall_avoidance = self._generate_wall_avoidance_force(rob_c, map)
 
         # Movement vectors summed
-        F_agent += F_wall_avoidance + self.F_heading + F_box.T
+        F_agent += F_wall_avoidance + self.F_heading + F_box.T 
         F_x = F_agent.T[0] # Repulsion vector in x
         F_y = F_agent.T[1] # in y 
         
@@ -165,10 +165,8 @@ class Swarm:
         return True
 
     # amplification for pickup
-    def _G(self,p,rob_id,warehouse,box_type):
+    def _G(self,p,rob_id,SC):
         no_in_range = self.box_in_range[rob_id]
-        param_idx = rob_id*warehouse.number_of_box_types + box_type
-        SC = self.SC[param_idx]*warehouse.number_of_boxes # SC is in range [0,1]
         if no_in_range < SC:
             p_ = self.G_max*p
         else:
@@ -177,18 +175,12 @@ class Swarm:
         return min(p_,1)
 
     # amplification for dropoff
-    def _F(self,p,rob_id,warehouse): 
+    def _F(self,p,rob_id,SC): 
         p_ = p
         no_in_range = self.box_in_range[rob_id]
-        # get box type
-        # need to know box ids that robtos are carryign in order to get the types
-        box_ids = self.agent_box_id[rob_id].astype(int)
-        box_types = warehouse.box_types[box_ids]
-        param_idx = rob_id*self.no_box_t + box_types
-        params = self.SC[param_idx]*warehouse.number_of_boxes
         box_in_range = self.box_in_range[rob_id]
-        amp_max = np.argwhere(box_in_range > params)
-        amp_min = np.argwhere(box_in_range <= params)
+        amp_max = np.argwhere(box_in_range > SC)
+        amp_min = np.argwhere(box_in_range <= SC)
         p_[amp_max] *= self.F_max
         p_[amp_min] *= self.F_min
 
@@ -219,8 +211,12 @@ class Swarm:
                     d_ = (d*2/self.camera_sensor_range_V[closest_r]).flatten()
                     ap = warehouse.ap[closest_ap]
                     idx = closest_r*len(warehouse.ap)+closest_ap
-                    p = self.P_m[idx]*( 1 - 1/(1+d_*d_) ).flatten()
-                    p = self._G(p, closest_r, warehouse, box_type)
+                    param_idx = closest_r*warehouse.number_of_box_types + box_type
+                    SC = self.SC[param_idx]*warehouse.number_of_boxes # SC is in range [0,1]
+                    r0 = self.r0[param_idx]*min(warehouse.width,warehouse.height)
+
+                    p = self.P_m[idx]*( 1 - 1/(1+(d_-r0)*(d_-r0)) ).flatten()
+                    p = self._G(p, closest_r, SC)
                 
                 pickup = np.random.binomial(1,p)
                 # print("pick  ",d," ",p,'\n')
@@ -244,9 +240,14 @@ class Swarm:
         d1 = np.min(d,axis=0)
         ap_idx = np.argmin(d,axis=0)
         d2 = d1*2/self.camera_sensor_range_V[rob_id] # scale down by factor cam_range/2
+        
         idx = rob_id*len(warehouse.ap)+ap_idx
-        p = self.D_m[idx]/(1+d2*d2)
-        p = self._F(p,rob_id,warehouse)
+        box_types = warehouse.box_types[active_box_id]
+        param_idx = rob_id*self.no_box_t + box_types
+        SC = self.SC[param_idx]*warehouse.number_of_boxes # SC is in range [0,1]
+        r0 = self.r0[param_idx]*min(warehouse.width,warehouse.height)
+        p = self.D_m[idx]/(1+(d2-r0)*(d2-r0))
+        p = self._F(p,rob_id,SC)
         # if points out of range, probability of dropoff is fixed at base rate
         in_range = (d1 <= self.camera_sensor_range_V[rob_id])
         p = p*in_range + self.base_dropoff_p*(1-in_range)
@@ -400,18 +401,3 @@ class Swarm:
         # self.wall_dist # walls in range
         self.box_in_range = sum(self.box_dist < self.camera_sensor_range_V[0]) # boxes in range
         # self.box_type # what type of box it's carrying
-
-    
-
-class BoidsSwarm(Swarm):
-
-    def __init__(self, repulsion_o, repulsion_w, heading_change_rate=1):
-        super().__init__(repulsion_o, repulsion_w, heading_change_rate)
-        
-        # init parameters
-        self._C = np.ones(self.number_of_agents) # cohesion
-        self._A = np.ones(self.number_of_agents) # alignment
-        self._S = np.ones(self.number_of_agents) # separation
-
-    # def step(self):
-    #     return

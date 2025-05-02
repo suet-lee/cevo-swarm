@@ -76,12 +76,13 @@ class CA(Warehouse):
         self.box_d = np.array((active_boxes,active_boxes)).T*self.rob_d[self.robot_carrier] # move the boxes by the amount equal to the robot carrying them 
         self.box_c = self.box_c + self.box_d
 		
+        self.swarm.compute_metrics()
+        
         s,u,e = self.select_phase()   
         self.socialize(s)
         self.update(u)
         self.execute_pickup_dropoff(e)
 
-        self.swarm.compute_metrics()
         self.counter += 1
         self.swarm.counter = self.counter
 

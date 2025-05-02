@@ -13,7 +13,7 @@ import datetime
 import time
 import json
 
-from . import Swarm, BoidsSwarm, CA, Warehouse, Robot
+from . import Swarm, CA, Warehouse, Robot
 
 class Simulator:
 

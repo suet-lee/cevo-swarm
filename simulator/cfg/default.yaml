@@ -8,7 +8,7 @@ warehouse:
   width: 500
   height: 500
   number_of_agents: 10
-  number_of_boxes: 20
+  number_of_boxes: 50
   repulsion_wall: 25
   repulsion_object: 5
   object_position: 0

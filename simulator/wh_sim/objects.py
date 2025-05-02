@@ -47,7 +47,9 @@ class Swarm:
             self.robot_lifter = np.append(self.robot_lifter, np.full(num, ag_obj.lifter_state))
         
         self.number_of_agents = total_agents
+        # TODO combine agent_has_box and agent_box_id
         self.agent_has_box = np.zeros(self.number_of_agents) # agents start with no box
+        self.agent_box_id = np.zeros(self.number_of_agents)*(-1) # record of box id that agent is carrying
         self.heading = 0.0314*np.random.randint(-100, 100, self.number_of_agents) # initial heading for all robots is randomly chosen
         self.computed_heading = self.heading # this is computed heading after force calculations are completed
         self.computed_heading_prev = {} # stores previous computed heading
@@ -74,13 +76,11 @@ class Swarm:
 
         for subc in culture:
             no_agents = math.floor(self.number_of_agents*subc['ratio'])
-            no_ap = len(cfg.get('ap'))
-            no_box_t = len(cfg.get('box_type_ratio'))
             # probably a better way to unpack variables by list.pop() or next()
-            P_m_vec = subc['params'][:no_ap]
-            D_m_vec = subc['params'][no_ap:2*no_ap]
-            SC_vec = subc['params'][2*no_ap:2*no_ap+no_box_t]
-            r0_vec = subc['params'][2*no_ap+no_box_t:2*no_ap+2*no_box_t]
+            P_m_vec = subc['params'][:self.no_ap]
+            D_m_vec = subc['params'][self.no_ap:2*self.no_ap]
+            SC_vec = subc['params'][2*self.no_ap:2*self.no_ap+self.no_box_t]
+            r0_vec = subc['params'][2*self.no_ap+self.no_box_t:2*self.no_ap+2*self.no_box_t]
             P_m = np.tile(P_m_vec,(1,no_agents)).flatten()
             D_m = np.tile(D_m_vec,(1,no_agents)).flatten()
             SC = np.tile(SC_vec,(1,no_agents)).flatten()
@@ -111,6 +111,7 @@ class Swarm:
         self.BS_SC = self.SC
         self.BS_r0 = self.r0
 
+        # fixed parameters: in future these could also be evolved in the belief space
         self.G_max = 1.5
         self.G_min = 0.2
         self.F_max = 1.5
@@ -164,19 +165,30 @@ class Swarm:
         return True
 
     # amplification for pickup
-    def _G(self,p,box_in_range):
-        if box_in_range < 2:
+    def _G(self,p,rob_id,warehouse,box_type):
+        no_in_range = self.box_in_range[rob_id]
+        param_idx = rob_id*warehouse.number_of_box_types + box_type
+        SC = self.SC[param_idx]*warehouse.number_of_boxes # SC is in range [0,1]
+        if no_in_range < SC:
             p_ = self.G_max*p
         else:
             p_ = self.G_min*p
-        
+            
         return min(p_,1)
 
     # amplification for dropoff
-    def _F(self,p,box_in_range): 
+    def _F(self,p,rob_id,warehouse): 
         p_ = p
-        amp_max = np.argwhere(box_in_range > 2)
-        amp_min = np.argwhere(box_in_range <= 2)
+        no_in_range = self.box_in_range[rob_id]
+        # get box type
+        # need to know box ids that robtos are carryign in order to get the types
+        box_ids = self.agent_box_id[rob_id].astype(int)
+        box_types = warehouse.box_types[box_ids]
+        param_idx = rob_id*self.no_box_t + box_types
+        params = self.SC[param_idx]*warehouse.number_of_boxes
+        box_in_range = self.box_in_range[rob_id]
+        amp_max = np.argwhere(box_in_range > params)
+        amp_min = np.argwhere(box_in_range <= params)
         p_[amp_max] *= self.F_max
         p_[amp_min] *= self.F_min
 
@@ -199,18 +211,16 @@ class Swarm:
                 d_ap = cdist(warehouse.ap, warehouse.box_c[box_id])
                 closest_ap = np.argmin(d_ap,0)
                 d = np.min(d_ap,0)
-                ap = warehouse.ap[closest_ap]
                 box_type = warehouse.box_types[box_id]
                 # if points out of range, probability of pickup is fixed at base rate
                 if d > self.camera_sensor_range_V[closest_r]:
                     p = self.base_pickup_p
                 else:
                     d_ = (d*2/self.camera_sensor_range_V[closest_r]).flatten()
-                    # need to do: get ap_idx
-                    # idx = closest_r*len(warehouse.ap)+ap_idx
-                    P_m = self.P_m[closest_r*warehouse.number_of_box_types+box_type]
-                    p = P_m*( 1 - 1/(1+d_*d_) ).flatten()
-                    p = self._G(p, self.box_in_range[closest_r])
+                    ap = warehouse.ap[closest_ap]
+                    idx = closest_r*len(warehouse.ap)+closest_ap
+                    p = self.P_m[idx]*( 1 - 1/(1+d_*d_) ).flatten()
+                    p = self._G(p, closest_r, warehouse, box_type)
                 
                 pickup = np.random.binomial(1,p)
                 # print("pick  ",d," ",p,'\n')
@@ -218,6 +228,7 @@ class Swarm:
                     warehouse.box_is_free[box_id] = 0 # change box state to 0 (not free, on a robot)
                     warehouse.box_c[box_id] = warehouse.rob_c[closest_r] # change the box centre so it is aligned with its robot carrier's centre
                     warehouse.robot_carrier[box_id] = closest_r # set the robot_carrier for box b to that robot ID
+                    self.agent_box_id[closest_r] = box_id # set box id
 
     def dropoff_box(self, warehouse):
         # active box coordinates
@@ -235,7 +246,7 @@ class Swarm:
         d2 = d1*2/self.camera_sensor_range_V[rob_id] # scale down by factor cam_range/2
         idx = rob_id*len(warehouse.ap)+ap_idx
         p = self.D_m[idx]/(1+d2*d2)
-        p = self._F(p,self.box_in_range[rob_id])
+        p = self._F(p,rob_id,warehouse)
         # if points out of range, probability of dropoff is fixed at base rate
         in_range = (d1 <= self.camera_sensor_range_V[rob_id])
         p = p*in_range + self.base_dropoff_p*(1-in_range)
@@ -378,7 +389,6 @@ class Swarm:
     #     except Exception as e:
     #         print(e)
 
-    # TODO not used
     def compute_metrics(self):
         # Global
         # self.number_of_agents
@@ -389,7 +399,6 @@ class Swarm:
         # self.agent_dist # number of agents in range
         # self.wall_dist # walls in range
         self.box_in_range = sum(self.box_dist < self.camera_sensor_range_V[0]) # boxes in range
-        # self.in_division # which zone it's currently in
         # self.box_type # what type of box it's carrying
 
     

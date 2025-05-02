@@ -37,7 +37,7 @@ class Simulator:
             self.swarm = self.build_swarm(self.cfg)
         except Exception as e:
             raise e
-    
+        
         # CA evo
         self.warehouse = CA(
             self.cfg.get('warehouse', 'width'),

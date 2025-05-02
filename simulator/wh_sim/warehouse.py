@@ -122,6 +122,7 @@ class Warehouse:
 			rob_n = self.robot_carrier[drop] # robot IDs that have dropped a box just now
 			self.box_is_free[drop] = 1 # mark boxes as free again
 			self.swarm.agent_has_box[rob_n] = 0 # mark robots as free again
+			self.swarm.agent_box_id[rob_n] = -1
 
 	def iterate(self, heading_bias=False, box_attraction=False): # moves the robot and box positions forward in one time step
 		self.rob_d = self.swarm.iterate(

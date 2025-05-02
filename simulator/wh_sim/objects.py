@@ -1,6 +1,7 @@
 import numpy as np
 import math
 from scipy.spatial.distance import cdist
+import random
 
 class Robot:
 
@@ -54,11 +55,23 @@ class Swarm:
     def init_params(self,cfg):
         # box interaction probabilities
         culture = cfg.get('culture')
+        self.no_ap = len(cfg.get('ap'))
+        self.no_box_t = len(cfg.get('box_type_ratio'))
+        self.influence_rate = []
+        self.resistance_rate = []
 
+        # Behavioural parameters : used in their behaviour
         self.P_m = np.array([]) # pickup probability parameter
         self.D_m = np.array([]) # dropoff probability parameter
         self.SC = np.array([]) # amplification factor threshold for stone count
         self.r0 = np.array([]) # wall template radius from aggregation point (i.e. nest site)
+
+        # Belief space parameters
+        self.BS_P_m = np.array([])  # pickup probability parameter
+        self.BS_D_m = np.array([])  # dropoff probability parameter
+        self.BS_SC = np.array([])  # amplification factor threshold for stone count
+        self.BS_r0 = np.array([])  # wall template radius from aggregation point (i.e. nest site)
+
         for subc in culture:
             no_agents = math.floor(self.number_of_agents*subc['ratio'])
             no_ap = len(cfg.get('ap'))
@@ -76,6 +89,27 @@ class Swarm:
             self.D_m = np.concatenate((self.D_m,D_m))
             self.SC = np.concatenate((self.SC,SC))
             self.r0 = np.concatenate((self.r0,r0))
+
+            if subc.get("use_fixed_rates", True):
+                inf_rate = subc.get("influence_rate", 0.5)
+                res_rate = subc.get("resistance_rate", 0.5)
+                self.influence_rate.extend([inf_rate] * no_agents)
+                self.resistance_rate.extend([res_rate] * no_agents)
+            else:
+                inf_range = subc.get("influence_range", (0.4, 0.9))
+                res_range = subc.get("resistance_range", (0.2, 0.8))
+                for _ in range(no_agents):
+                    self.influence_rate.append(random.uniform(*inf_range))
+                    self.resistance_rate.append(random.uniform(*res_range))
+
+        self.influence_rate = np.array(self.influence_rate)
+        self.resistance_rate = np.array(self.resistance_rate)
+
+        # initialise the belief space
+        self.BS_P_m = self.P_m
+        self.BS_D_m = self.D_m
+        self.BS_SC = self.SC
+        self.BS_r0 = self.r0
 
         self.G_max = 1.5
         self.G_min = 0.2

@@ -1,5 +1,7 @@
 from pathlib import Path
 import sys
+import random
+from itertools import combinations
 
 dir_root = Path(__file__).resolve().parents[1]
 
@@ -38,19 +40,22 @@ class CA(Warehouse):
 
 
         # Influence/update factors (how influential or resistant an agent is in social exchange)
-        self.influence_F = np.random.uniform(0,1,self.swarm.number_of_agents) # TODO intialise - how? random for now
-        self.update_F = np.random.uniform(0,1,self.swarm.number_of_agents)
+        #self.influence_F = np.random.uniform(0,1,self.swarm.number_of_agents) # TODO intialise - how? random for now
+        #self.update_F = np.random.uniform(0,1,self.swarm.number_of_agents)
 
     def update_hook(self):
         if not self.has_init_params:
             self._init_params()
 
     def select_phase(self):
-        p = np.random.uniform(0,3,self.swarm.number_of_agents)
+        p = np.random.uniform(0,3,self.swarm.number_of_agents) # change it to control the prob
         phase = np.floor(p)
         s = np.argwhere(phase==self.PHASE_SOCIAL_LEARNING).flatten()
         u = np.argwhere(phase==self.PHASE_UPDATE_BEHAVIOUR).flatten()
         e = np.argwhere(phase==self.PHASE_EXECUTE_BEHAVIOUR).flatten()
+
+        if len(s) % 2 != 0:
+            s = s[:-1]
         return s,u,e
 
     def step(self, heading_bias=False, box_attraction=False):     
@@ -80,21 +85,91 @@ class CA(Warehouse):
         self.counter += 1
         self.swarm.counter = self.counter
 
+
     def socialize(self, agent_ids):
-        return
+        used = set()
+        influence_prob = 0.5  # apply influence per parameter with this chance
+
+        for id1, id2 in combinations(agent_ids, 2):
+            if id1 in used or id2 in used:
+                continue
+
+            dist = self.swarm.agent_dist[id1][id2]
+            if dist >= self.influence_r:
+                continue
+
+            # Get influence rates
+            rate1 = self.swarm.influence_rate[id1]
+            rate2 = self.swarm.influence_rate[id2]
+
+            if rate1 == rate2:
+                continue  # no update if influence is identical
+
+            # Determine influencee and influencer
+            if rate1 > rate2:
+                influencer, influencee = id1, id2
+            else:
+                influencer, influencee = id2, id1
+
+            weight = abs(rate1 - rate2)
+            rev_weight = 1.0 - weight
+
+            print(
+                f"Agents {influencer} (more influential) & {influencee} interacting — weight: {weight:.2f}, dist: {dist:.2f}")
+            used.update([id1, id2])
+
+            # Each param: behaviour → BS_ version
+            for attr in ['P_m', 'D_m', 'SC', 'r0']:
+                source_array = getattr(self, attr) # Behaviour param
+                target_array = getattr(self, f'BS_{attr}')  # belief space param
+
+                param_size = self.no_ap if attr in ['P_m', 'D_m'] else len(self.no_box_t)
+
+                start_inf = influencer * param_size
+                start_infce = influencee * param_size
+
+                for i in range(param_size):
+                    # if random.random() < influence_prob:
+                    #     v_inf = source_array[start_inf + i]
+                    #     v_infce = source_array[start_infce + i]
+                    #
+                    #     # Update behaviorally shifted version
+                    #     target_array[start_infce + i] = v_infce + weight * (v_inf - v_infce)
+                    #     target_array[start_inf + i] = v_inf - rev_weight * (v_inf - v_infce)
+
+                    if random.random() < weight:
+                        target_array[start_infce + i] =  source_array[start_inf + i]
+                    if random.random() < rev_weight:
+                        target_array[start_inf + i] = source_array[start_infce + i]
+
+                # After the update, store the modified target_array back to self.BS_
+                setattr(self, f'BS_{attr}', target_array)
+
 
     # TODO asynchronous evo ?
     # This is called after the main step function (step forward in swarm behaviour)
     def update(self, agent_ids):
-        # Influence : each agent applies their influence to other agents' belief spaces
-        # first check which agents are in proximity (should be computed in self.agent_dist)
-        in_range = (self.swarm.agent_dist < self.influence_r)
-        inf_F = np.multiply(self.influence_F,in_range)
-        # print(inf_F[1],'\n')
 
-        # Update : each agent updates their behavioural parameters from their belief space
+        for id in agent_ids:
+            # Each param: behaviour → BS_ version
+            for attr in ['P_m', 'D_m', 'SC', 'r0']:
+                target_array = getattr(self, attr)  # Behaviour param
+                source_array= getattr(self, f'BS_{attr}')  # belief space param
 
-        
-        return
+                param_size = self.no_ap if attr in ['P_m', 'D_m'] else len(self.no_box_t)
 
-        
+                start_index = id * param_size
+
+                for i in range(param_size):
+                    if random.random() < self.swarm.resistance_rate[id]:
+                        target_array[start_index + i] = source_array[start_index + i]
+
+                # After the update, store the modified target_array back to self.BS_
+                setattr(self, attr, target_array)
+
+
+
+
+
+    #def compute_analytic (self):
+

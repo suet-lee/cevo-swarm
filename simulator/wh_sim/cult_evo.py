@@ -18,36 +18,19 @@ class CA(Warehouse):
     PHASE_EXECUTE_BEHAVIOUR = 2
 
     def __init__(self, width, height, number_of_boxes, box_radius, swarm,
-		init_object_positions=Warehouse.RANDOM_OBJ_POS, box_type_ratio=[1], influence_r=100):
+		init_object_positions=Warehouse.RANDOM_OBJ_POS, 
+        box_type_ratio=[1], phase_ratio=[0.3,0.3,0.4], influence_r=100):
         super().__init__(width, height, number_of_boxes, box_radius, swarm,
 		    init_object_positions=Warehouse.RANDOM_OBJ_POS, box_type_ratio=box_type_ratio)
         
-        self.has_init_params = False
         self.influence_r = influence_r
+        self.phase_ratio = phase_ratio
 
-    def _init_params(self):
-        # assume we have influence/resistance parameters
-        # need to initialize these for all agents
-        # need to initialize a belief space
-        self.has_init_params = True
-        
-        # Each agent has an individual belief space - this encodes the behavioural parameters
-        # TODO is there a better way to encode? how about into a smaller dimensional space ??? (or larger)
-        # initialise with the parameters
-        # self.bs_C = self._C # cohesion
-        # self.bs_A = self._A # alignment
-        # self.bs_S = self._S # separation
-
-
-        # Influence/update factors (how influential or resistant an agent is in social exchange)
-        #self.influence_F = np.random.uniform(0,1,self.swarm.number_of_agents) # TODO intialise - how? random for now
-        #self.update_F = np.random.uniform(0,1,self.swarm.number_of_agents)
-
-    def update_hook(self):
-        if not self.has_init_params:
-            self._init_params()
+    # def update_hook(self):
+        #
 
     def select_phase(self):
+        # TODO replace using self.phase_ratio which is now set in config
         p = np.random.uniform(0,3,self.swarm.number_of_agents) # change it to control the prob
         phase = np.floor(p)
         s = np.argwhere(phase==self.PHASE_SOCIAL_LEARNING).flatten()
@@ -58,7 +41,22 @@ class CA(Warehouse):
             s = s[:-1]
         return s,u,e
 
-    def step(self, heading_bias=False, box_attraction=False):     
+    # TODO avoid repetition from warehouse class
+    def execute_pickup_dropoff(self, robots):
+        self.swarm.pickup_box(self, robots)
+        drop = self.swarm.dropoff_box(self, robots)
+		
+        if len(drop):
+            rob_n = self.robot_carrier[drop] # robot IDs to drop boxes
+            valid_drop = []
+            valid_rob = []
+
+            self.box_is_free[drop] = 1 # mark boxes as free again
+            self.swarm.agent_has_box[rob_n] = 0 # mark robots as free again
+            self.swarm.agent_box_id[rob_n] = -1
+
+    # TODO avoid repetition from warehouse class (post hook)
+    def iterate(self, heading_bias=False, box_attraction=False):     
         self.rob_d = self.swarm.iterate(
 			self.rob_c, 
 			self.box_c, 
@@ -67,7 +65,7 @@ class CA(Warehouse):
 			self.map, 
 			heading_bias,
 			box_attraction) # the robots move using the random walk function which generates a new deviation (rob_d)
-		
+        
 		# handles logic to move boxes with robots/drop boxes
         t = self.counter%10
         self.rob_c_prev[t] = self.rob_c # Save a record of centre coordinates before update
@@ -77,7 +75,6 @@ class CA(Warehouse):
         self.box_c = self.box_c + self.box_d
 		
         self.swarm.compute_metrics()
-        
         s,u,e = self.select_phase()   
         self.socialize(s)
         self.update(u)

@@ -1,5 +1,5 @@
 from simulator.wh_sim import *
-from simulator.lib import Config, SaveSample
+from simulator.lib import Config
 from simulator import CFG_FILES, MODEL_ROOT, STATS_ROOT
 import time
 

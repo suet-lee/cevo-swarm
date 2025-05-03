@@ -47,9 +47,18 @@ class Simulator:
             self.swarm,
             self.cfg.get('warehouse', 'object_position'),
             self.cfg.get('box_type_ratio'),
+            self.cfg.get('phase_ratio'),
             self.cfg.get('influence_r'))     
 
-        self.warehouse.generate_ap(self.cfg)       
+        self.warehouse.generate_ap(self.cfg)   
+        self.export_data = self.cfg.get('export_data')
+        self.export_steps = self.cfg.get('export_steps')
+        self._init_log()
+
+    def _init_log(self):
+        self.data = {}
+        steps = int(self.cfg.get('time_limit')/self.export_steps)
+        self.export_ts = list(range(steps, self.cfg.get('time_limit')+1, steps))
 
     def build_swarm(self, cfg):
         robot_obj = Robot(
@@ -67,49 +76,8 @@ class Simulator:
         swarm.add_agents(robot_obj, cfg.get('warehouse', 'number_of_agents'))
         swarm.generate()  
         swarm.init_params(cfg)      
-        # fault_types = cfg.get('faults')
-        # count = 0
-        # fault_count = []
-        # for i, fault in enumerate(fault_types):
-        #     end_count = self.fault_count[i]+count
-        #     fault_count.append(end_count)
-        #     faulty_agents_range = range(count, end_count)
-        #     fault_cfg = self.generate_fault_type(fault, faulty_agents_range)
-        #     swarm.add_fault(**fault_cfg)    
-        #     count = end_count
-
-        # swarm.fault_count = fault_count
         return swarm
 
-    # def generate_fault_type(self, fault, faulty_agents_range):
-    #     fault_type = fault['type']
-        
-    #     if fault_type == FaultySwarm.ALTER_AGENT_SPEED:
-    #         speed = fault['cfg']['speed_at_fault']
-    #         lookup = []
-    #         for i in faulty_agents_range:
-    #             lookup.append((0, i, speed))
-    #         return {'ftype': FaultySwarm.ALTER_AGENT_SPEED, 'lookup': lookup}
-
-    #     if fault_type == FaultySwarm.FAILED_BOX_PICKUP:
-    #         lookup = {}
-    #         for i in faulty_agents_range:
-    #             lookup[i] = 0
-    #         return {'ftype': FaultySwarm.FAILED_BOX_PICKUP, 'lookup': lookup}
-
-    #     if fault_type == FaultySwarm.FAILED_BOX_DROPOFF:
-    #         lookup = {}
-    #         for i in faulty_agents_range:
-    #             lookup[i] = 0
-    #         return {'ftype': FaultySwarm.FAILED_BOX_DROPOFF, 'lookup': lookup}
-
-    #     if fault_type == FaultySwarm.REDUCED_CAMERA_RANGE:
-    #         r_range = fault['cfg']['reduced_range']
-    #         lookup = {}
-    #         for i in faulty_agents_range:
-    #             lookup[i] = r_range
-    #         return {'ftype': FaultySwarm.REDUCED_CAMERA_RANGE, 'lookup': lookup}
-   
     # iterate method called once per timestep
     def iterate(self):
         self.warehouse.iterate(self.cfg.get('heading_bias'), self.cfg.get('box_attraction'))
@@ -134,7 +102,12 @@ class Simulator:
 
         while self.warehouse.counter <= self.cfg.get('time_limit'):
             self.iterate()
+            if self.export_data and self.warehouse.counter in self.export_ts:
+                self.log_data()
         
         if self.verbose:
             print("\n")
+
+    def log_data(self):
+        self.data[self.warehouse.counter] = self.warehouse.box_c.tolist()
 

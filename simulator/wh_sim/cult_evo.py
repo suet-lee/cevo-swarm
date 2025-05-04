@@ -25,6 +25,19 @@ class CA(Warehouse):
         
         self.influence_r = influence_r
         self.phase_ratio = phase_ratio
+        self.social_transmission =[]
+        self.social_transmission_hist=[]
+        # Behavioural parameters over time
+        self.P_m_hist = []
+        self.D_m_hist = []
+        self.SC_hist = []
+        self.r0_hist = []
+
+        # Belief space parameters over time
+        self.BS_P_m_hist = []
+        self.BS_D_m_hist = []
+        self.BS_SC_hist = []
+        self.BS_r0_hist = []
 
     # def update_hook(self):
         #
@@ -87,6 +100,7 @@ class CA(Warehouse):
     def socialize(self, agent_ids):
         used = set()
         influence_prob = 0.5  # apply influence per parameter with this chance
+        self.social_transmission = []
 
         for id1, id2 in combinations(agent_ids, 2):
             if id1 in used or id2 in used:
@@ -106,15 +120,17 @@ class CA(Warehouse):
             # Determine influencee and influencer
             if rate1 > rate2:
                 influencer, influencee = id1, id2
+                influence_prob = rate1 * (1 - rate2)
+                reverse_influence_prob = rate2 * (1 - rate1)
             else:
                 influencer, influencee = id2, id1
-
-            weight = abs(rate1 - rate2)
-            rev_weight = 1.0 - weight
+                influence_prob = rate2 * (1 - rate1)
+                reverse_influence_prob = rate1 * (1 - rate2)
 
             print(
-                f"Agents {influencer} (more influential) & {influencee} interacting — weight: {weight:.2f}, dist: {dist:.2f}")
+                f"Agents {influencer} (more influential) & {influencee} interacting — influence_prob: {influence_prob:.2f}, dist: {dist:.2f}")
             used.update([id1, id2])
+            self.social_transmission.append([id1, id2])
 
             # Each param: behaviour → BS_ version
             for attr in ['P_m', 'D_m', 'SC', 'r0']:
@@ -135,9 +151,9 @@ class CA(Warehouse):
                     #     target_array[start_infce + i] = v_infce + weight * (v_inf - v_infce)
                     #     target_array[start_inf + i] = v_inf - rev_weight * (v_inf - v_infce)
 
-                    if random.random() < weight:
+                    if random.random() < influence_prob:
                         target_array[start_infce + i] =  source_array[start_inf + i]
-                    if random.random() < rev_weight:
+                    if random.random() < reverse_influence_prob:
                         target_array[start_inf + i] = source_array[start_infce + i]
 
                 # After the update, store the modified target_array back to self.BS_
@@ -165,9 +181,18 @@ class CA(Warehouse):
                 # After the update, store the modified target_array back to self.BS_
                 setattr(self, attr, target_array)
 
+    def save_data (self):
 
+        self.social_transmission_hist.append(self.social_transmission)
+        # Behavioural parameters over time
+        self.P_m_hist.append(self.P_m)
+        self.D_m_hist.append(self.D_m)
+        self.SC_hist.append(self.SC)
+        self.r0_hist.append(self.r0)
 
-
-
-    #def compute_analytic (self):
+        # Belief space parameters over time
+        self.BS_P_m_hist.append(self.BS_P_m)
+        self.BS_D_m_hist.append(self.BS_D_m)
+        self.BS_SC_hist.append(self.BS_SC)
+        self.BS_r0_hist.append(self.BS_r0)
 

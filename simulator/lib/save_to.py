@@ -1,5 +1,6 @@
 import os
 import datetime
+import json
 import pandas as pd
 
 class GenDir:
@@ -25,13 +26,19 @@ class SaveTo(GenDir):
             data = pd.DataFrame(data)
         dirname = self.gen_save_dirname(ex_id)
         if random_seed is None:
-            filename = '%d.csv'%ts
+            filename = ts
         else:
-            filename = '%d.csv'%random_seed
+            filename = random_seed
 
-        save_path = os.path.join(dirname, filename)
+        save_path = os.path.join(dirname, '%d.csv'%filename)
         try:
             data.to_csv(save_path, index=False)
         except Exception as e:
             print(e)
+        finally:
+            return dirname, filename
 
+    def export_metadata(self,dirname,filename,ex_cfg):
+        fn = os.path.join(dirname,'%d.txt'%filename)
+        with open(fn,"w") as f:
+            f.write(json.dumps(ex_cfg))

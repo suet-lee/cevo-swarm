@@ -77,10 +77,19 @@ class Swarm:
         for subc in culture:
             no_agents = math.floor(self.number_of_agents*subc['ratio'])
             # probably a better way to unpack variables by list.pop() or next()
-            P_m_vec = subc['params'][:self.no_ap]
-            D_m_vec = subc['params'][self.no_ap:2*self.no_ap]
-            SC_vec = subc['params'][2*self.no_ap:2*self.no_ap+self.no_box_t]
-            r0_vec = subc['params'][2*self.no_ap+self.no_box_t:2*self.no_ap+2*self.no_box_t]
+            P_m_vec = []
+            D_m_vec = []
+            SC_vec = []
+            r0_vec = []
+            for it in range(self.no_ap):
+                P_m_vec.append(subc['params'][2*it])
+            for it in range(self.no_ap):
+                D_m_vec.append(subc['params'][2*it+1])
+            for it in range(self.no_box_t):
+                SC_vec.append(subc['params'][2*it+2*self.no_ap])
+            for it in range(self.no_box_t):
+                r0_vec.append(subc['params'][2*it+2*self.no_ap+1])
+            
             P_m = np.tile(P_m_vec,(1,no_agents)).flatten()
             D_m = np.tile(D_m_vec,(1,no_agents)).flatten()
             SC = np.tile(SC_vec,(1,no_agents)).flatten()
@@ -226,7 +235,6 @@ class Swarm:
                 param_idx = closest_r*warehouse.number_of_box_types + box_type
                 SC = self.SC[param_idx]*warehouse.number_of_boxes # SC is in range [0,1]
                 r0 = self.r0[param_idx]*min(warehouse.width,warehouse.height)
-
                 p = self.P_m[idx]*( 1 - 1/(1+self.tau*(d_-r0)*(d_-r0)) ).flatten()
                 p = self._G(p, closest_r, SC)
             

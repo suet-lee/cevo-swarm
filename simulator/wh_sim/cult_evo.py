@@ -2,6 +2,7 @@ from pathlib import Path
 import sys
 import random
 from itertools import combinations
+from scipy.spatial.distance import cdist
 
 dir_root = Path(__file__).resolve().parents[1]
 
@@ -31,7 +32,7 @@ class CA(Warehouse):
 
     def select_phase(self):
         # TODO replace using self.phase_ratio which is now set in config
-        p = np.random.uniform(0,3,self.swarm.number_of_agents) # change it to control the prob
+        p = np.random.uniform(2,3,self.swarm.number_of_agents) # change it to control the prob
         phase = np.floor(p)
         s = np.argwhere(phase==self.PHASE_SOCIAL_LEARNING).flatten()
         u = np.argwhere(phase==self.PHASE_UPDATE_BEHAVIOUR).flatten()
@@ -47,11 +48,17 @@ class CA(Warehouse):
         drop = self.swarm.dropoff_box(self, robots)
 		
         if len(drop):
-            rob_n = self.robot_carrier[drop] # robot IDs to drop boxes
+            # rob_n = self.robot_carrier[drop] # robot IDs to drop boxes
             valid_drop = []
-            valid_rob = []
+            rob_n = []
+            for d in drop:
+                box_d = cdist([self.box_c[d]],self.box_c).flatten()
+                count = len(np.argwhere(box_d<10).flatten())
+                if count < 3:
+                    valid_drop.append(d)
+                    rob_n.append(self.robot_carrier[d])
 
-            self.box_is_free[drop] = 1 # mark boxes as free again
+            self.box_is_free[valid_drop] = 1 # mark boxes as free again
             self.swarm.agent_has_box[rob_n] = 0 # mark robots as free again
             self.swarm.agent_box_id[rob_n] = -1
 

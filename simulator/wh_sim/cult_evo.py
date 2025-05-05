@@ -21,7 +21,7 @@ class CA(Warehouse):
 		init_object_positions=Warehouse.RANDOM_OBJ_POS, 
         box_type_ratio=[1], phase_ratio=[0.3,0.3,0.4], influence_r=100):
         super().__init__(width, height, number_of_boxes, box_radius, swarm,
-		    init_object_positions=Warehouse.RANDOM_OBJ_POS, box_type_ratio=box_type_ratio)
+		    init_object_positions=init_object_positions, box_type_ratio=box_type_ratio)
         
         self.influence_r = influence_r
         self.phase_ratio = phase_ratio
@@ -137,7 +137,7 @@ class CA(Warehouse):
                 source_array = getattr(self.swarm, attr) # Behaviour param
                 target_array = getattr(self.swarm, f'BS_{attr}')  # belief space param
 
-                param_size = self.no_ap if attr in ['P_m', 'D_m'] else len(self.no_box_t)
+                param_size = self.swarm.no_ap if attr in ['P_m', 'D_m'] else self.swarm.no_box_t
 
                 start_inf = influencer * param_size
                 start_infce = influencee * param_size
@@ -170,7 +170,7 @@ class CA(Warehouse):
                 target_array = getattr(self.swarm, attr)  # Behaviour param
                 source_array= getattr(self.swarm, f'BS_{attr}')  # belief space param
 
-                param_size = self.no_ap if attr in ['P_m', 'D_m'] else len(self.no_box_t)
+                param_size = self.swarm.no_ap if attr in ['P_m', 'D_m'] else self.swarm.no_box_t
 
                 start_index = id * param_size
 

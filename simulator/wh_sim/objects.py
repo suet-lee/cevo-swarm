@@ -118,6 +118,7 @@ class Swarm:
         self.F_min = 0.01
         self.base_pickup_p = 0.1
         self.base_dropoff_p = 0.1
+        self.tau = 0.025
 
         # init computed metrics
         self.box_in_range = np.zeros(self.number_of_agents)
@@ -219,14 +220,14 @@ class Swarm:
             if d > self.camera_sensor_range_V[closest_r]:
                 p = self.base_pickup_p
             else:
-                d_ = (d*2/self.camera_sensor_range_V[closest_r]).flatten()
+                d_ = d#(d*2/self.camera_sensor_range_V[closest_r]).flatten()
                 ap = warehouse.ap[closest_ap]
                 idx = closest_r*len(warehouse.ap)+closest_ap
                 param_idx = closest_r*warehouse.number_of_box_types + box_type
                 SC = self.SC[param_idx]*warehouse.number_of_boxes # SC is in range [0,1]
                 r0 = self.r0[param_idx]*min(warehouse.width,warehouse.height)
 
-                p = self.P_m[idx]*( 1 - 1/(1+(d_-r0)*(d_-r0)) ).flatten()
+                p = self.P_m[idx]*( 1 - 1/(1+self.tau*(d_-r0)*(d_-r0)) ).flatten()
                 p = self._G(p, closest_r, SC)
             
             pickup = np.random.binomial(1,p)
@@ -255,14 +256,15 @@ class Swarm:
         # get the closest aggregation point
         d1 = np.min(d,axis=0)
         ap_idx = np.argmin(d,axis=0)
-        d2 = d1*2/self.camera_sensor_range_V[rob_id] # scale down by factor cam_range/2
+        # TODO cleanup - remove the scaling factor from code
+        d2 = d1#d1*2/self.camera_sensor_range_V[rob_id] # scale down by factor cam_range/2
         
         idx = rob_id*len(warehouse.ap)+ap_idx
         box_types = warehouse.box_types[active_box_id]
         param_idx = rob_id*self.no_box_t + box_types
         SC = self.SC[param_idx]*warehouse.number_of_boxes # SC is in range [0,1]
         r0 = self.r0[param_idx]*min(warehouse.width,warehouse.height)
-        p = self.D_m[idx]/(1+(d2-r0)*(d2-r0))
+        p = self.D_m[idx]/(1+self.tau*(d2-r0)*(d2-r0))
         p = self._F(p,rob_id,SC)
         
         # if aggregation points are out of range, probability of dropoff is fixed at base rate

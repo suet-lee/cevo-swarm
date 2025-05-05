@@ -134,8 +134,8 @@ class CA(Warehouse):
 
             # Each param: behaviour → BS_ version
             for attr in ['P_m', 'D_m', 'SC', 'r0']:
-                source_array = getattr(self, attr) # Behaviour param
-                target_array = getattr(self, f'BS_{attr}')  # belief space param
+                source_array = getattr(self.swarm, attr) # Behaviour param
+                target_array = getattr(self.swarm, f'BS_{attr}')  # belief space param
 
                 param_size = self.no_ap if attr in ['P_m', 'D_m'] else len(self.no_box_t)
 
@@ -157,7 +157,7 @@ class CA(Warehouse):
                         target_array[start_inf + i] = source_array[start_infce + i]
 
                 # After the update, store the modified target_array back to self.BS_
-                setattr(self, f'BS_{attr}', target_array)
+                setattr(self.swarm, f'BS_{attr}', target_array)
 
 
     # TODO asynchronous evo ?
@@ -167,8 +167,8 @@ class CA(Warehouse):
         for id in agent_ids:
             # Each param: behaviour → BS_ version
             for attr in ['P_m', 'D_m', 'SC', 'r0']:
-                target_array = getattr(self, attr)  # Behaviour param
-                source_array= getattr(self, f'BS_{attr}')  # belief space param
+                target_array = getattr(self.swarm, attr)  # Behaviour param
+                source_array= getattr(self.swarm, f'BS_{attr}')  # belief space param
 
                 param_size = self.no_ap if attr in ['P_m', 'D_m'] else len(self.no_box_t)
 
@@ -179,7 +179,7 @@ class CA(Warehouse):
                         target_array[start_index + i] = source_array[start_index + i]
 
                 # After the update, store the modified target_array back to self.BS_
-                setattr(self, attr, target_array)
+                setattr(self.swarm, attr, target_array)
 
     def save_data (self):
 

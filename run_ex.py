@@ -29,7 +29,12 @@ sim = Simulator(cfg_obj,verbose=verbose,random_seed=seed)
 sim.run()
 if export_box_c:
     data = sim.data
-    st.export_data(ex_id,data)
+    dn,fn = st.export_data(ex_id,data)
+    st.export_metadata(dn,fn,
+    {
+        'box_type_ratio':cfg_obj.get('box_type_ratio'),
+        'ap':cfg_obj.get('ap')
+    })
 t1 = time.time()
 dt = t1-t0
 print("Time taken: %s"%str(dt), '\n')

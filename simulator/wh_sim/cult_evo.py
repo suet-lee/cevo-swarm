@@ -27,6 +27,7 @@ class CA(Warehouse):
         self.phase_ratio = phase_ratio
         self.social_transmission =[]
         self.social_transmission_hist=[]
+        self.self_updates_hist = []
         # Behavioural parameters over time
         self.P_m_hist = []
         self.D_m_hist = []
@@ -44,14 +45,18 @@ class CA(Warehouse):
 
     def select_phase(self):
         # TODO replace using self.phase_ratio which is now set in config
-        p = np.random.uniform(0,3,self.swarm.number_of_agents) # change it to control the prob
-        phase = np.floor(p)
+        #p = np.random.uniform(0,3,self.swarm.number_of_agents) # change it to control the prob
+        #phase = np.floor(p)
+        # Define probabilities for each phase (ensure they sum to 1)
+        probabilities = [0.2, 0.1, 0.7]  # % chance for phase 1, % for phase 2, % for phase 3
+        # Generate phase array based on probabilities
+        phase = np.random.choice([self.PHASE_SOCIAL_LEARNING, self.PHASE_UPDATE_BEHAVIOUR, self.PHASE_EXECUTE_BEHAVIOUR],
+                                 size=self.swarm.number_of_agents,
+                                 p=probabilities)
         s = np.argwhere(phase==self.PHASE_SOCIAL_LEARNING).flatten()
         u = np.argwhere(phase==self.PHASE_UPDATE_BEHAVIOUR).flatten()
         e = np.argwhere(phase==self.PHASE_EXECUTE_BEHAVIOUR).flatten()
 
-        if len(s) % 2 != 0:
-            s = s[:-1]
         return s,u,e
 
     # TODO avoid repetition from warehouse class
@@ -95,11 +100,11 @@ class CA(Warehouse):
 
         self.counter += 1
         self.swarm.counter = self.counter
+        self.save_data()
 
 
     def socialize(self, agent_ids):
         used = set()
-        influence_prob = 0.5  # apply influence per parameter with this chance
         self.social_transmission = []
 
         for id1, id2 in combinations(agent_ids, 2):
@@ -114,18 +119,22 @@ class CA(Warehouse):
             rate1 = self.swarm.influence_rate[id1]
             rate2 = self.swarm.influence_rate[id2]
 
-            if rate1 == rate2:
-                continue  # no update if influence is identical
 
             # Determine influencee and influencer
             if rate1 > rate2:
                 influencer, influencee = id1, id2
                 influence_prob = rate1 * (1 - rate2)
                 reverse_influence_prob = rate2 * (1 - rate1)
-            else:
+            elif rate2 > rate1:
                 influencer, influencee = id2, id1
                 influence_prob = rate2 * (1 - rate1)
                 reverse_influence_prob = rate1 * (1 - rate2)
+            else:
+                influencer, influencee = id1, id2  # Arbitrary order
+                influence_prob = rate1 * (1 - rate2)
+                reverse_influence_prob = influence_prob  # Same value
+                # or
+                # continue  # no update if influence is identical
 
             print(
                 f"Agents {influencer} (more influential) & {influencee} interacting — influence_prob: {influence_prob:.2f}, dist: {dist:.2f}")
@@ -137,7 +146,7 @@ class CA(Warehouse):
                 source_array = getattr(self.swarm, attr) # Behaviour param
                 target_array = getattr(self.swarm, f'BS_{attr}')  # belief space param
 
-                param_size = self.no_ap if attr in ['P_m', 'D_m'] else len(self.no_box_t)
+                param_size = self.swarm.no_ap if attr in ['P_m', 'D_m'] else self.swarm.no_box_t
 
                 start_inf = influencer * param_size
                 start_infce = influencee * param_size
@@ -156,6 +165,7 @@ class CA(Warehouse):
                     if random.random() < reverse_influence_prob:
                         target_array[start_inf + i] = source_array[start_infce + i]
 
+
                 # After the update, store the modified target_array back to self.BS_
                 setattr(self.swarm, f'BS_{attr}', target_array)
 
@@ -164,18 +174,20 @@ class CA(Warehouse):
     # This is called after the main step function (step forward in swarm behaviour)
     def update(self, agent_ids):
 
+        self.self_updates_hist.append(agent_ids)
+
         for id in agent_ids:
             # Each param: behaviour → BS_ version
             for attr in ['P_m', 'D_m', 'SC', 'r0']:
                 target_array = getattr(self.swarm, attr)  # Behaviour param
                 source_array= getattr(self.swarm, f'BS_{attr}')  # belief space param
 
-                param_size = self.no_ap if attr in ['P_m', 'D_m'] else len(self.no_box_t)
+                param_size = self.swarm.no_ap if attr in ['P_m', 'D_m'] else self.swarm.no_box_t
 
                 start_index = id * param_size
 
                 for i in range(param_size):
-                    if random.random() < self.swarm.resistance_rate[id]:
+                    if random.random() < 1- self.swarm.resistance_rate[id]:
                         target_array[start_index + i] = source_array[start_index + i]
 
                 # After the update, store the modified target_array back to self.BS_
@@ -185,14 +197,14 @@ class CA(Warehouse):
 
         self.social_transmission_hist.append(self.social_transmission)
         # Behavioural parameters over time
-        self.P_m_hist.append(self.P_m)
-        self.D_m_hist.append(self.D_m)
-        self.SC_hist.append(self.SC)
-        self.r0_hist.append(self.r0)
+        self.P_m_hist.append(self.swarm.P_m)
+        self.D_m_hist.append(self.swarm.D_m)
+        self.SC_hist.append(self.swarm.SC)
+        self.r0_hist.append(self.swarm.r0)
 
         # Belief space parameters over time
-        self.BS_P_m_hist.append(self.BS_P_m)
-        self.BS_D_m_hist.append(self.BS_D_m)
-        self.BS_SC_hist.append(self.BS_SC)
-        self.BS_r0_hist.append(self.BS_r0)
+        self.BS_P_m_hist.append(self.swarm.BS_P_m)
+        self.BS_D_m_hist.append(self.swarm.BS_D_m)
+        self.BS_SC_hist.append(self.swarm.BS_SC)
+        self.BS_r0_hist.append(self.swarm.BS_r0)
 

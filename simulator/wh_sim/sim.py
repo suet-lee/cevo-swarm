@@ -57,6 +57,7 @@ class Simulator:
 
     def _init_log(self):
         self.data = {}
+        self.CA_data = {}
         steps = int(self.cfg.get('time_limit')/self.export_steps)
         self.export_ts = list(range(steps, self.cfg.get('time_limit')+1, steps))
 
@@ -102,12 +103,29 @@ class Simulator:
 
         while self.warehouse.counter <= self.cfg.get('time_limit'):
             self.iterate()
-            if self.export_data and self.warehouse.counter in self.export_ts:
+            if self.export_data:
+              self.log_CA_data()
+              if self.warehouse.counter in self.export_ts:
                 self.log_data()
+
         
         if self.verbose:
             print("\n")
 
     def log_data(self):
         self.data[self.warehouse.counter] = self.warehouse.box_c.tolist()
+
+    def log_CA_data(self):
+        self.CA_dat = {
+            "P_m": list(self.warehouse.P_m_hist),
+            "D_m": list(self.warehouse.D_m_hist),
+            "SC": list(self.warehouse.SC_hist),
+            "r0": list(self.warehouse.r0_hist),
+            "BS_P_m": list(self.warehouse.BS_P_m_hist),
+            "BS_D_m": list(self.warehouse.BS_D_m_hist),
+            "BS_SC": list(self.warehouse.BS_SC_hist),
+            "BS_r0": list(self.warehouse.BS_r0_hist),
+            "social_transmission": list(self.warehouse.social_transmission_hist),
+            "Self_updates": list(self.warehouse.self_updates_hist),
+        }
 

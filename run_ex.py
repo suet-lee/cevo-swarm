@@ -29,12 +29,20 @@ sim = Simulator(cfg_obj,verbose=verbose,random_seed=seed)
 sim.run()
 if export_box_c:
     data = sim.data
+    
+    for key in ["P_m", "D_m", "SC", "r0", "BS_P_m", "BS_D_m", "BS_SC", "BS_r0", "social_transmission","Self_updates"]:
+        values = sim.CA_dat[key]  # Use CA_dat instead of CA_data
+        records = [{"timestep": i, key: v} for i, v in enumerate(values)]
+        df = pd.DataFrame(records)
+        st.export_data2(ex_id, df, key)
+    
     dn,fn = st.export_data(ex_id,data)
     st.export_metadata(dn,fn,
     {
         'box_type_ratio':cfg_obj.get('box_type_ratio'),
         'ap':cfg_obj.get('ap')
     })
+    
 t1 = time.time()
 dt = t1-t0
 print("Time taken: %s"%str(dt), '\n')

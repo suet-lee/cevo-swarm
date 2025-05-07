@@ -38,6 +38,22 @@ class SaveTo(GenDir):
         finally:
             return dirname, filename
 
+    def export_data2(self, ex_id, data, data_name, random_seed=None):
+        ts = datetime.datetime.now().timestamp()
+        if not isinstance(data, pd.DataFrame):
+            data = pd.DataFrame(data)
+        dirname = self.gen_save_dirname(ex_id)
+        if random_seed is None:
+            filename = data_name+'_%d.csv'%ts
+        else:
+            filename = data_name+'_%d.csv'%random_seed
+
+        save_path = os.path.join(dirname, filename)
+        try:
+            data.to_csv(save_path, index=False)
+        except Exception as e:
+            print(e)
+
     def export_metadata(self,dirname,filename,ex_cfg):
         fn = os.path.join(dirname,'%d.txt'%filename)
         with open(fn,"w") as f:

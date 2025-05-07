@@ -21,7 +21,7 @@ e_1:
       # influence_range: [0.4, 0.8]
       # resistance_range: [0.3, 0.7]
 
-  influence_r: 100
+  influence_r: 50
 
 e_2:
   data_dir: "e_1"
@@ -41,4 +41,4 @@ e_2:
       # influence_range: [0.4, 0.8]
       # resistance_range: [0.3, 0.7]
 
-  influence_r: 100
+  influence_r: 50

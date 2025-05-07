@@ -116,7 +116,7 @@ class Simulator:
         self.data[self.warehouse.counter] = self.warehouse.box_c.tolist()
 
     def log_CA_data(self):
-        self.CA_dat = {
+        self.CA_data = {
             "P_m": list(self.warehouse.P_m_hist),
             "D_m": list(self.warehouse.D_m_hist),
             "SC": list(self.warehouse.SC_hist),

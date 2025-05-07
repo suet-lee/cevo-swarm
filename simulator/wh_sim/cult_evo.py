@@ -2,6 +2,7 @@ from pathlib import Path
 import sys
 import random
 from itertools import combinations
+from scipy.spatial.distance import cdist
 
 dir_root = Path(__file__).resolve().parents[1]
 
@@ -21,7 +22,7 @@ class CA(Warehouse):
 		init_object_positions=Warehouse.RANDOM_OBJ_POS, 
         box_type_ratio=[1], phase_ratio=[0.3,0.3,0.4], influence_r=100):
         super().__init__(width, height, number_of_boxes, box_radius, swarm,
-		    init_object_positions=Warehouse.RANDOM_OBJ_POS, box_type_ratio=box_type_ratio)
+		    init_object_positions=init_object_positions, box_type_ratio=box_type_ratio)
         
         self.influence_r = influence_r
         self.phase_ratio = phase_ratio
@@ -47,16 +48,19 @@ class CA(Warehouse):
         # TODO replace using self.phase_ratio which is now set in config
         #p = np.random.uniform(0,3,self.swarm.number_of_agents) # change it to control the prob
         #phase = np.floor(p)
+
         # Define probabilities for each phase (ensure they sum to 1)
-        probabilities = [0.2, 0.1, 0.7]  # % chance for phase 1, % for phase 2, % for phase 3
+        probabilities = self.phase_ratio  # % chance for phase 1, % for phase 2, % for phase 3
+        
         # Generate phase array based on probabilities
         phase = np.random.choice([self.PHASE_SOCIAL_LEARNING, self.PHASE_UPDATE_BEHAVIOUR, self.PHASE_EXECUTE_BEHAVIOUR],
                                  size=self.swarm.number_of_agents,
                                  p=probabilities)
+
         s = np.argwhere(phase==self.PHASE_SOCIAL_LEARNING).flatten()
         u = np.argwhere(phase==self.PHASE_UPDATE_BEHAVIOUR).flatten()
         e = np.argwhere(phase==self.PHASE_EXECUTE_BEHAVIOUR).flatten()
-
+        print(len(s),len(u),len(e))
         return s,u,e
 
     # TODO avoid repetition from warehouse class
@@ -65,11 +69,17 @@ class CA(Warehouse):
         drop = self.swarm.dropoff_box(self, robots)
 		
         if len(drop):
-            rob_n = self.robot_carrier[drop] # robot IDs to drop boxes
+            # rob_n = self.robot_carrier[drop] # robot IDs to drop boxes
             valid_drop = []
-            valid_rob = []
+            rob_n = []
+            for d in drop:
+                box_d = cdist([self.box_c[d]],self.box_c).flatten()
+                count = len(np.argwhere(box_d<10).flatten())
+                if count < 3:
+                    valid_drop.append(d)
+                    rob_n.append(self.robot_carrier[d])
 
-            self.box_is_free[drop] = 1 # mark boxes as free again
+            self.box_is_free[valid_drop] = 1 # mark boxes as free again
             self.swarm.agent_has_box[rob_n] = 0 # mark robots as free again
             self.swarm.agent_box_id[rob_n] = -1
 

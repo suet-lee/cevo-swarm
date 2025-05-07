@@ -60,7 +60,6 @@ class CA(Warehouse):
         s = np.argwhere(phase==self.PHASE_SOCIAL_LEARNING).flatten()
         u = np.argwhere(phase==self.PHASE_UPDATE_BEHAVIOUR).flatten()
         e = np.argwhere(phase==self.PHASE_EXECUTE_BEHAVIOUR).flatten()
-        print(len(s),len(u),len(e))
         return s,u,e
 
     # TODO avoid repetition from warehouse class

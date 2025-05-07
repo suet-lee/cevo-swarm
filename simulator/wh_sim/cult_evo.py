@@ -29,6 +29,7 @@ class CA(Warehouse):
         self.social_transmission =[]
         self.social_transmission_hist=[]
         self.self_updates_hist = []
+
         # Behavioural parameters over time
         self.P_m_hist = []
         self.D_m_hist = []
@@ -41,14 +42,12 @@ class CA(Warehouse):
         self.BS_SC_hist = []
         self.BS_r0_hist = []
 
+        self.verbose = False
+
     # def update_hook(self):
         #
 
     def select_phase(self):
-        # TODO replace using self.phase_ratio which is now set in config
-        #p = np.random.uniform(0,3,self.swarm.number_of_agents) # change it to control the prob
-        #phase = np.floor(p)
-
         # Define probabilities for each phase (ensure they sum to 1)
         probabilities = self.phase_ratio  # % chance for phase 1, % for phase 2, % for phase 3
         
@@ -145,9 +144,11 @@ class CA(Warehouse):
                 # or
                 # continue  # no update if influence is identical
 
-            print(
-                f"Agents {influencer} (more influential) & {influencee} interacting — influence_prob: {influence_prob:.2f}, dist: {dist:.2f}")
-            used.update([id1, id2])
+            if self.verbose:
+                print(
+                    f"Agents {influencer} (more influential) & {influencee} interacting — influence_prob: {influence_prob:.2f}, dist: {dist:.2f}")
+                used.update([id1, id2])
+
             self.social_transmission.append([id1, id2])
 
             # Each param: behaviour → BS_ version

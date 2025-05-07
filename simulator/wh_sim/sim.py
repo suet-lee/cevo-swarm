@@ -50,7 +50,8 @@ class Simulator:
             self.cfg.get('phase_ratio'),
             self.cfg.get('influence_r'))     
 
-        self.warehouse.generate_ap(self.cfg)   
+        self.warehouse.generate_ap(self.cfg)
+        self.warehouse.verbose = self.verbose
         self.export_data = self.cfg.get('export_data')
         self.export_steps = self.cfg.get('export_steps')
         self._init_log()
@@ -113,7 +114,13 @@ class Simulator:
             print("\n")
 
     def log_data(self):
-        self.data[self.warehouse.counter] = self.warehouse.box_c.tolist()
+        if 'box_c' not in self.data:
+            self.data['box_c'] = {}
+        if 'rob_c' not in self.data:
+            self.data['rob_c'] = {}
+
+        self.data['box_c'][self.warehouse.counter] = self.warehouse.box_c.tolist()
+        self.data['rob_c'][self.warehouse.counter] = self.warehouse.rob_c.tolist()
 
     def log_CA_data(self):
         self.CA_data = {

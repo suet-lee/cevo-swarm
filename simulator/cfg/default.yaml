@@ -8,18 +8,18 @@ warehouse:
   width: 500
   height: 500
   number_of_agents: 20
-  number_of_boxes: 100
+  number_of_boxes: 200
   repulsion_wall: 25
   repulsion_object: 5
   object_position: 0
 
 faults: []
 
-time_limit: 100000
+time_limit: 200000
 animate: False
 save_animation: False
 export_data: True
-export_steps: 4
+export_steps: 200000
 heading_bias: False
 box_attraction: False
 heading_change_rate: 10 # ticks per change in heading

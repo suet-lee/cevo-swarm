@@ -7,54 +7,40 @@ class GenDir:
 
     BASE = 'data'
 
+    def __init__(self):
+        self.ts = int(datetime.datetime.now().timestamp())
+
     def mkdir(self, dirname):
         if not os.path.exists(dirname):
             os.makedirs(dirname)
 
-    def gen_save_dirname(self, ex_id, makedir=True):
+    def gen_save_dirname(self, ex_id, sub_dir=None, makedir=True):
         dirname = '%s'%(ex_id)
         target = os.path.join(self.BASE, dirname)
+        if sub_dir is not None:
+            target = os.path.join(target, sub_dir)
         if makedir:
             self.mkdir(target)
         return target
 
 class SaveTo(GenDir):
 
-    def export_data(self, ex_id, data, random_seed=None):
-        ts = datetime.datetime.now().timestamp()
+    def export_data(self, ex_id, data, filename, transpose=False):
         if not isinstance(data, pd.DataFrame):
             data = pd.DataFrame(data)
-        dirname = self.gen_save_dirname(ex_id)
-        if random_seed is None:
-            filename = ts
-        else:
-            filename = random_seed
+        if transpose:
+            data = data.transpose()
 
-        save_path = os.path.join(dirname, '%d.csv'%filename)
+        dirname = self.gen_save_dirname(ex_id, str(self.ts))
+        save_path = os.path.join(dirname, '%s.csv'%filename)
         try:
             data.to_csv(save_path, index=False)
         except Exception as e:
             print(e)
         finally:
-            return dirname, filename
+            return dirname
 
-    def export_data2(self, ex_id, data, data_name, random_seed=None):
-        ts = datetime.datetime.now().timestamp()
-        if not isinstance(data, pd.DataFrame):
-            data = pd.DataFrame(data)
-        dirname = self.gen_save_dirname(ex_id)
-        if random_seed is None:
-            filename = data_name+'_%d.csv'%ts
-        else:
-            filename = data_name+'_%d.csv'%random_seed
-
-        save_path = os.path.join(dirname, filename)
-        try:
-            data.to_csv(save_path, index=False)
-        except Exception as e:
-            print(e)
-
-    def export_metadata(self,dirname,filename,ex_cfg):
-        fn = os.path.join(dirname,'%d.txt'%filename)
+    def export_metadata(self,dirname,ex_cfg):
+        fn = os.path.join(dirname,'metadata.txt')
         with open(fn,"w") as f:
             f.write(json.dumps(ex_cfg))

@@ -50,7 +50,8 @@ class Simulator:
             self.cfg.get('phase_ratio'),
             self.cfg.get('influence_r'))     
 
-        self.warehouse.generate_ap(self.cfg)   
+        self.warehouse.generate_ap(self.cfg)
+        self.warehouse.verbose = self.verbose
         self.export_data = self.cfg.get('export_data')
         self.export_steps = self.cfg.get('export_steps')
         self._init_log()
@@ -113,19 +114,48 @@ class Simulator:
             print("\n")
 
     def log_data(self):
-        self.data[self.warehouse.counter] = self.warehouse.box_c.tolist()
+        if 'box_c' not in self.data:
+            self.data['box_c'] = {}
+        if 'rob_c' not in self.data:
+            self.data['rob_c'] = {}
+
+        self.data['box_c'][self.warehouse.counter] = self.warehouse.box_c.tolist()
+        self.data['rob_c'][self.warehouse.counter] = self.warehouse.rob_c.tolist()
 
     def log_CA_data(self):
-        self.CA_data = {
-            "P_m": list(self.warehouse.P_m_hist),
-            "D_m": list(self.warehouse.D_m_hist),
-            "SC": list(self.warehouse.SC_hist),
-            "r0": list(self.warehouse.r0_hist),
-            "BS_P_m": list(self.warehouse.BS_P_m_hist),
-            "BS_D_m": list(self.warehouse.BS_D_m_hist),
-            "BS_SC": list(self.warehouse.BS_SC_hist),
-            "BS_r0": list(self.warehouse.BS_r0_hist),
-            "social_transmission": list(self.warehouse.social_transmission_hist),
-            "Self_updates": list(self.warehouse.self_updates_hist),
-        }
+        if 'P_m' not in self.CA_data:
+            self.CA_data['P_m'] = {}
+        if 'D_m' not in self.CA_data:
+            self.CA_data['D_m'] = {}
+        if 'SC' not in self.CA_data:
+            self.CA_data['SC'] = {}
+        if 'r0' not in self.CA_data:
+            self.CA_data['r0'] = {}
+        if 'BS_P_m' not in self.CA_data:
+            self.CA_data['BS_P_m'] = {}
+        if 'BS_D_m' not in self.CA_data:
+            self.CA_data['BS_D_m'] = {}
+        if 'BS_SC' not in self.CA_data:
+            self.CA_data['BS_SC'] = {}
+        if 'BS_r0' not in self.CA_data:
+            self.CA_data['BS_r0'] = {}
+        if 'social_transmission' not in self.CA_data:
+            self.CA_data['social_transmission'] = {}
+        if 'self_updates' not in self.CA_data:
+            self.CA_data['self_updates'] = {}
+        if 'r_phase' not in self.CA_data:
+            self.CA_data['r_phase'] = {}
+        
+        self.CA_data['P_m'][self.warehouse.counter] = self.swarm.P_m.tolist()
+        self.CA_data['D_m'][self.warehouse.counter] = self.swarm.D_m.tolist()
+        self.CA_data['SC'][self.warehouse.counter] = self.swarm.SC.tolist()
+        self.CA_data['r0'][self.warehouse.counter] = self.swarm.r0.tolist()
+        self.CA_data['BS_P_m'][self.warehouse.counter] = self.swarm.BS_P_m.tolist()
+        self.CA_data['BS_D_m'][self.warehouse.counter] = self.swarm.BS_D_m.tolist()
+        self.CA_data['BS_SC'][self.warehouse.counter] = self.swarm.BS_SC.tolist()
+        self.CA_data['BS_r0'][self.warehouse.counter] = self.swarm.BS_r0.tolist()
+        self.CA_data['social_transmission'][self.warehouse.counter] = self.warehouse.social_transmission
+        self.CA_data['self_updates'][self.warehouse.counter] = self.warehouse.self_updates.tolist()
+        self.CA_data['r_phase'][self.warehouse.counter] = self.warehouse.r_phase.tolist()
+
 

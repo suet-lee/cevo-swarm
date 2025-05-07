@@ -26,7 +26,7 @@ def gen_random_seed(iteration):
     return (a*P1 + b)*P2 + c
 
 def run_ex():
-    sim = VizSim(cfg_obj)
+    sim = VizSim(cfg_obj,verbose=verbose)
     sim.run()
 
 ###### Run experiment ######

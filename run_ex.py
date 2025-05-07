@@ -8,7 +8,7 @@ import numpy as np
 
 ex_id = 'e_1'
 verbose = False
-export_box_c = True
+export_data = True
 
 ###### Config class ######
 
@@ -27,17 +27,21 @@ seed = np.random.randint(0,10000000)
 st = SaveTo()
 sim = Simulator(cfg_obj,verbose=verbose,random_seed=seed)
 sim.run()
-if export_box_c:
-    data = sim.data
+if export_data:    
+    for key in ["P_m", "D_m", "SC", "r0", "BS_P_m", "BS_D_m", "BS_SC", "BS_r0",
+        "r_phase"]:
+        data = sim.CA_data[key]
+        st.export_data(ex_id, data, key, transpose=True)
     
-    for key in ["P_m", "D_m", "SC", "r0", "BS_P_m", "BS_D_m", "BS_SC", "BS_r0", "social_transmission","Self_updates"]:
-        values = sim.CA_data[key]  # Use CA_dat instead of CA_data
-        records = [{"timestep": i, key: v} for i, v in enumerate(values)]
-        df = pd.DataFrame(records)
-        st.export_data2(ex_id, df, key)
-    
-    dn,fn = st.export_data(ex_id,data)
-    st.export_metadata(dn,fn,
+    # @TODO remove self_updates variable ? -- data already logged in r_phase
+    for key in ["social_transmission","self_updates"]:
+        data = sim.CA_data[key]
+        records = [{"timestep": i, key: v} for i, v in data.items()]
+        st.export_data(ex_id, records, key)
+
+    dn = st.export_data(ex_id,sim.data['box_c'], "boxes")
+    st.export_data(ex_id,sim.data['rob_c'], "robots")
+    st.export_metadata(dn,
     {
         'box_type_ratio':cfg_obj.get('box_type_ratio'),
         'ap':cfg_obj.get('ap')

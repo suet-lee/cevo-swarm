@@ -4,41 +4,39 @@ e_1:
   data_dir: "e_1"
   description: "1 box type, 1 AP, 1 culture"
   box_type_ratio: [1.0]
-  phase_ratio: [0,0,1]
+  phase_ratio: [0.3,0.3,0.4]
   ap:
     - [0.5,0.5]
 
-
   culture:
     - ratio: 1.0
-      params: [0.35,0.5,0.15,0.2]
+      params: [0.35,0.5,0.03,0.15]
       # order: Pm, D_m, SC, r0
       use_fixed_rates: true # Same across all agents in a subculture,
       influence_rate: 0.6
       resistance_rate: 0.4
-      # OR Randomly assigned per agent within a range :
-      # use_fixed_rates: false
-      # influence_range: [0.4, 0.8]
-      # resistance_range: [0.3, 0.7]
 
   influence_r: 50
 
 e_2:
-  data_dir: "e_1"
-  description: "2 box types, 1 AP, 1 culture"
-  box_type_ratio: [0.5,0.5]
+  data_dir: "e_2"
+  description: "1 box types, 1 AP, 2 culture"
+  box_type_ratio: [1.]
+  phase_ratio: [0,0,1]
   ap:
-    - [0.5,0.5]
+    - [0.25,0.25]
+    - [0.75,0.75]
 
   culture:
-    - ratio: 1.0
-      params: [0.9,0.8,0.5,0.3,0.5,0.3]
+    - ratio: 0.5
+      params: [0.35,0.5,0,0,0.03,0.15]
       use_fixed_rates: true # Same across all agents in a subculture,
       influence_rate: 0.6
       resistance_rate: 0.4
-      # OR Randomly assigned per agent within a range :
-      # use_fixed_rates: false
-      # influence_range: [0.4, 0.8]
-      # resistance_range: [0.3, 0.7]
+    - ratio: 0.5
+      params: [0.,0.,0.35,0.5,0.5,0.1]
+      use_fixed_rates: true # Same across all agents in a subculture,
+      influence_rate: 0.6
+      resistance_rate: 0.4
 
   influence_r: 50

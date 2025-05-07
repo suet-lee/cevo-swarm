@@ -27,40 +27,29 @@ class CA(Warehouse):
         self.influence_r = influence_r
         self.phase_ratio = phase_ratio
         self.social_transmission =[]
-        self.social_transmission_hist=[]
-        self.self_updates_hist = []
-        # Behavioural parameters over time
-        self.P_m_hist = []
-        self.D_m_hist = []
-        self.SC_hist = []
-        self.r0_hist = []
-
-        # Belief space parameters over time
-        self.BS_P_m_hist = []
-        self.BS_D_m_hist = []
-        self.BS_SC_hist = []
-        self.BS_r0_hist = []
+        self.self_updates = []
+        self.r_phase = np.array([])
+        self.verbose = False
 
     # def update_hook(self):
         #
 
     def select_phase(self):
-        # TODO replace using self.phase_ratio which is now set in config
-        #p = np.random.uniform(0,3,self.swarm.number_of_agents) # change it to control the prob
-        #phase = np.floor(p)
-
-        # Define probabilities for each phase (ensure they sum to 1)
-        probabilities = self.phase_ratio  # % chance for phase 1, % for phase 2, % for phase 3
+        if self.counter % 10 == 0:
+            # Define probabilities for each phase (ensure they sum to 1)
+            probabilities = self.phase_ratio  # % chance for phase 1, % for phase 2, % for phase 3
+            
+            # Generate phase array based on probabilities
+            phase = np.random.choice([self.PHASE_SOCIAL_LEARNING, self.PHASE_UPDATE_BEHAVIOUR, self.PHASE_EXECUTE_BEHAVIOUR],
+                                    size=self.swarm.number_of_agents,
+                                    p=probabilities)
+            self.r_phase = phase
+        else:
+            phase = self.r_phase
         
-        # Generate phase array based on probabilities
-        phase = np.random.choice([self.PHASE_SOCIAL_LEARNING, self.PHASE_UPDATE_BEHAVIOUR, self.PHASE_EXECUTE_BEHAVIOUR],
-                                 size=self.swarm.number_of_agents,
-                                 p=probabilities)
-
         s = np.argwhere(phase==self.PHASE_SOCIAL_LEARNING).flatten()
         u = np.argwhere(phase==self.PHASE_UPDATE_BEHAVIOUR).flatten()
         e = np.argwhere(phase==self.PHASE_EXECUTE_BEHAVIOUR).flatten()
-        print(len(s),len(u),len(e))
         return s,u,e
 
     # TODO avoid repetition from warehouse class
@@ -110,8 +99,6 @@ class CA(Warehouse):
 
         self.counter += 1
         self.swarm.counter = self.counter
-        self.save_data()
-
 
     def socialize(self, agent_ids):
         used = set()
@@ -146,9 +133,11 @@ class CA(Warehouse):
                 # or
                 # continue  # no update if influence is identical
 
-            print(
-                f"Agents {influencer} (more influential) & {influencee} interacting — influence_prob: {influence_prob:.2f}, dist: {dist:.2f}")
-            used.update([id1, id2])
+            if self.verbose:
+                print(
+                    f"Agents {influencer} (more influential) & {influencee} interacting — influence_prob: {influence_prob:.2f}, dist: {dist:.2f}")
+                used.update([id1, id2])
+
             self.social_transmission.append([id1, id2])
 
             # Each param: behaviour → BS_ version
@@ -184,7 +173,7 @@ class CA(Warehouse):
     # This is called after the main step function (step forward in swarm behaviour)
     def update(self, agent_ids):
 
-        self.self_updates_hist.append(agent_ids)
+        self.self_updates = agent_ids
 
         for id in agent_ids:
             # Each param: behaviour → BS_ version
@@ -203,18 +192,4 @@ class CA(Warehouse):
                 # After the update, store the modified target_array back to self.BS_
                 setattr(self.swarm, attr, target_array)
 
-    def save_data (self):
-
-        self.social_transmission_hist.append(self.social_transmission)
-        # Behavioural parameters over time
-        self.P_m_hist.append(self.swarm.P_m)
-        self.D_m_hist.append(self.swarm.D_m)
-        self.SC_hist.append(self.swarm.SC)
-        self.r0_hist.append(self.swarm.r0)
-
-        # Belief space parameters over time
-        self.BS_P_m_hist.append(self.swarm.BS_P_m)
-        self.BS_D_m_hist.append(self.swarm.BS_D_m)
-        self.BS_SC_hist.append(self.swarm.BS_SC)
-        self.BS_r0_hist.append(self.swarm.BS_r0)
 

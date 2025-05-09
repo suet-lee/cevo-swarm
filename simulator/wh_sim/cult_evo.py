@@ -20,7 +20,7 @@ class CA(Warehouse):
 
     def __init__(self, width, height, number_of_boxes, box_radius, swarm,
 		init_object_positions=Warehouse.RANDOM_OBJ_POS, 
-        box_type_ratio=[1], phase_ratio=[0.3,0.3,0.4], influence_r=100):
+        box_type_ratio=[1], phase_ratio=[0.3,0.3,0.4], phase_change_rate=10, influence_r=100):
         super().__init__(width, height, number_of_boxes, box_radius, swarm,
 		    init_object_positions=init_object_positions, box_type_ratio=box_type_ratio)
         
@@ -29,6 +29,7 @@ class CA(Warehouse):
         self.social_transmission =[]
         self.self_updates = []
         self.r_phase = np.array([])
+        self.phase_change_rate = phase_change_rate
         self.verbose = True
         self.continuous_traits = ['P_m', 'D_m', 'SC', 'r0']
 
@@ -37,7 +38,7 @@ class CA(Warehouse):
         #
 
     def select_phase(self):
-        if self.counter % 10 == 0:
+        if self.counter % self.phase_change_rate == 0:
             # Define probabilities for each phase (ensure they sum to 1)
             probabilities = self.phase_ratio  # % chance for phase 1, % for phase 2, % for phase 3
             

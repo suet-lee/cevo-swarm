@@ -161,11 +161,11 @@ class CA(Warehouse):
                         v_inf = source_array[start_inf + i]
                         v_infce = source_array[start_infce + i]
                         if random.random() < influence_prob:
-                            target_array[start_infce + i] = v_infce + weight * (v_inf - v_infce) + random.gauss(0,
-                                                                                                                noise_strength)
+                            new_value = v_infce + weight * (v_inf - v_infce) + random.gauss(0,noise_strength)
+                            target_array[start_infce + i] = min(max(new_value, 0), 1)
                         if random.random() < reverse_influence_prob:
-                            target_array[start_inf + i] = v_inf - rev_weight * (v_inf - v_infce) + random.gauss(0,
-                                                                                                                noise_strength)
+                            new_value = v_inf - rev_weight * (v_inf - v_infce) + random.gauss(0,noise_strength)
+                            target_array[start_inf + i] = min(max(new_value, 0), 1)
                     else:
                         if random.random() < influence_prob:
                             target_array[start_infce + i] = source_array[start_inf + i]
@@ -206,9 +206,10 @@ class CA(Warehouse):
 
                     if attr in self.continuous_traits :
                         # Gradual update for continuous traits with noise
-                        target_array[start_index + i] = (
+                        new_value = (
                                 v_behavior + weight * (v_belief - v_behavior) + random.gauss(0, noise_strength)
                         )
+                        target_array[start_index + i] = min(max(new_value, 0), 1)
                     else:
                         # Probabilistic full copy for discrete traits
                         if random.random() < weight:  # Use weight as probability for the update

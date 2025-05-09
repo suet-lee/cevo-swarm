@@ -22,7 +22,7 @@ e_2:
   data_dir: "e_2"
   description: "1 box types, 1 AP, 2 culture"
   box_type_ratio: [1.]
-  phase_ratio: [0,0,1]
+  phase_ratio: [0.3,0.3,0.4]
   ap:
     - [0.25,0.25]
     - [0.75,0.75]

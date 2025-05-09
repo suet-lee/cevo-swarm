@@ -6,7 +6,7 @@ import numpy as np
 
 ###### Experiment parameters ######
 
-ex_id = 'e_1'
+ex_id = 'e_2'
 verbose = False
 export_data = True
 

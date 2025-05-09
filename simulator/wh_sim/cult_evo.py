@@ -29,7 +29,9 @@ class CA(Warehouse):
         self.social_transmission =[]
         self.self_updates = []
         self.r_phase = np.array([])
-        self.verbose = False
+        self.verbose = True
+        self.continuous_traits = ['P_m', 'D_m', 'SC', 'r0']
+
 
     # def update_hook(self):
         #
@@ -102,6 +104,7 @@ class CA(Warehouse):
 
     def socialize(self, agent_ids):
         used = set()
+        noise_strength = 0.01  # Adjust based on your scale
         self.social_transmission = []
 
         for id1, id2 in combinations(agent_ids, 2):
@@ -133,6 +136,9 @@ class CA(Warehouse):
                 # or
                 # continue  # no update if influence is identical
 
+            weight = influence_prob
+            rev_weight = reverse_influence_prob
+
             if self.verbose:
                 print(
                     f"Agents {influencer} (more influential) & {influencee} interacting — influence_prob: {influence_prob:.2f}, dist: {dist:.2f}")
@@ -151,22 +157,29 @@ class CA(Warehouse):
                 start_infce = influencee * param_size
 
                 for i in range(param_size):
-                    # if random.random() < influence_prob:
-                    #     v_inf = source_array[start_inf + i]
-                    #     v_infce = source_array[start_infce + i]
-                    #
-                    #     # Update behaviorally shifted version
-                    #     target_array[start_infce + i] = v_infce + weight * (v_inf - v_infce)
-                    #     target_array[start_inf + i] = v_inf - rev_weight * (v_inf - v_infce)
+                    if attr in self.continuous_traits :
+                        v_inf = source_array[start_inf + i]
+                        v_infce = source_array[start_infce + i]
+                        if random.random() < influence_prob:
+                            new_value = v_infce + weight * (v_inf - v_infce) + random.gauss(0,noise_strength)
+                            target_array[start_infce + i] = min(max(new_value, 0), 1)
+                        if random.random() < reverse_influence_prob:
+                            new_value = v_inf - rev_weight * (v_inf - v_infce) + random.gauss(0,noise_strength)
+                            target_array[start_inf + i] = min(max(new_value, 0), 1)
+                    else:
+                        if random.random() < influence_prob:
+                            target_array[start_infce + i] = source_array[start_inf + i]
+                        if random.random() < reverse_influence_prob:
+                            target_array[start_inf + i] = source_array[start_infce + i]
 
-                    if random.random() < influence_prob:
-                        target_array[start_infce + i] =  source_array[start_inf + i]
-                    if random.random() < reverse_influence_prob:
-                        target_array[start_inf + i] = source_array[start_infce + i]
+
+
+
 
 
                 # After the update, store the modified target_array back to self.BS_
                 setattr(self.swarm, f'BS_{attr}', target_array)
+
 
 
     # TODO asynchronous evo ?
@@ -174,6 +187,7 @@ class CA(Warehouse):
     def update(self, agent_ids):
 
         self.self_updates = agent_ids
+        noise_strength = 0.01  # Small amount of stochasticity
 
         for id in agent_ids:
             # Each param: behaviour → BS_ version
@@ -184,10 +198,23 @@ class CA(Warehouse):
                 param_size = self.swarm.no_ap if attr in ['P_m', 'D_m'] else self.swarm.no_box_t
 
                 start_index = id * param_size
+                weight = 1 - self.swarm.resistance_rate[id]
 
                 for i in range(param_size):
-                    if random.random() < 1- self.swarm.resistance_rate[id]:
-                        target_array[start_index + i] = source_array[start_index + i]
+                    v_behavior = target_array[start_index + i]
+                    v_belief = source_array[start_index + i]
+
+                    if attr in self.continuous_traits :
+                        # Gradual update for continuous traits with noise
+                        new_value = (
+                                v_behavior + weight * (v_belief - v_behavior) + random.gauss(0, noise_strength)
+                        )
+                        target_array[start_index + i] = min(max(new_value, 0), 1)
+                    else:
+                        # Probabilistic full copy for discrete traits
+                        if random.random() < weight:  # Use weight as probability for the update
+                            target_array[start_index + i] = v_belief  # Full adoption of belief
+
 
                 # After the update, store the modified target_array back to self.BS_
                 setattr(self.swarm, attr, target_array)

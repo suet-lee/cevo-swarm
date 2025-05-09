@@ -10,10 +10,3 @@ Simulation run scripts:
 | ----------- | ----------- |
 | run_ex.py | Run the experiment with given configuration, no visualization | 
 | run_ex_viz.py | Run the experiment with Matplotlib visualization | 
-
-General scripts:
-
-| Name | Description |
-| ----------- | ----------- |
-| gui.sh | Start the flask web application for visualization |
-

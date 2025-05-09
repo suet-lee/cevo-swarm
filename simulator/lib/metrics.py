@@ -108,5 +108,5 @@ class EvalMetric:
             coh_ = max(box_in_r.values()) - min(box_in_r.values()) # higher means more coherence
             coh.append(coh_)
         
-        return coh_
+        return coh
                         

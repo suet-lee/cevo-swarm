@@ -2,6 +2,7 @@ import numpy as np
 import math
 from scipy.spatial.distance import cdist
 import random
+from collections import deque
 
 class Robot:
 
@@ -137,7 +138,11 @@ class Swarm:
         self.box_t_in_range_mem = np.zeros((self.number_of_agents,self.mem_size))
        
         self.novelty_behav = np.zeros(self.number_of_agents)
-        self.novelty_behav_mem = np.zeros(self.number_of_agents*self.mem_size)
+        self.novelty_behav_mem = []
+        for _ in range(self.swarm.num_agents):
+            self.novelty_behav_mem.append({
+                attr: deque(maxlen=self.mem_size) for attr in ['P_m', 'D_m', 'SC', 'r0']
+            })
         self.novelty_env = np.zeros(self.number_of_agents)
         
     # @TODO allow for multiple behaviours, heterogeneous swarm
@@ -406,10 +411,58 @@ class Swarm:
         self.compute_novelty_behaviour()
         self.compute_novelty_environment()
 
+
     def compute_novelty_behaviour(self):
-        # self.novelty_behav = 
-        # self.novelty_behav_mem = 
-        return
+        # Step 1: Observe and add neighbors' behaviors to memory
+        for agent_id in range(self.swarm.num_agents):
+            for attr in ['P_m', 'D_m', 'SC', 'r0']:
+                source_array = getattr(self.swarm, attr)
+                param_size = self.swarm.no_ap if attr in ['P_m', 'D_m'] else self.swarm.no_box_t
+
+                for neighbor_id in range(self.swarm.num_agents):
+                    if neighbor_id == agent_id:
+                        continue
+                    if self.swarm.agent_dist[agent_id][neighbor_id] < self.influence_r:
+                        neighbor_start = neighbor_id * param_size
+                        neighbor_values = source_array[neighbor_start:neighbor_start + param_size]
+                        self.novelty_behav_mem[agent_id][attr].append(tuple(neighbor_values))
+
+        # Step 2: Compute novelty from memory only (concatenated behavior vector)
+        self.novelty_behav = [0.0] * self.swarm.num_agents
+        for agent_id in range(self.swarm.num_agents):
+            agent_vector = []
+            memory_vectors = []
+
+            # Build full behavior vector for current agent and memory
+            for attr in ['P_m', 'D_m', 'SC', 'r0']:
+                source_array = getattr(self.swarm, attr)
+                param_size = self.swarm.no_ap if attr in ['P_m', 'D_m'] else self.swarm.no_box_t
+                agent_start = agent_id * param_size
+                agent_vector.extend(source_array[agent_start:agent_start + param_size])
+
+                # Collect all past neighbor behavior vectors for this attribute
+                for i, past in enumerate(self.novelty_behav_mem[agent_id][attr]):
+                    # Make sure memory_vectors[i] exists and is extendable
+                    if len(memory_vectors) <= i:
+                        memory_vectors.append(list(past))
+                    else:
+                        memory_vectors[i].extend(past)
+
+            # Now compute Euclidean distance from agent_vector to each memory_vector
+            total_diff = 0.0
+            for past_vector in memory_vectors:
+                diff = sum((a - b) ** 2 for a, b in zip(agent_vector, past_vector)) ** 0.5
+                total_diff += diff
+
+            comparisons = len(memory_vectors)
+            self.novelty_behav[agent_id] = total_diff / comparisons if comparisons > 0 else 0.0
+
+        # Normalize novelty if needed
+        if max(self.novelty_behav) > 0:
+            max_val = max(self.novelty_behav)
+            self.novelty_behav = [n / max_val for n in self.novelty_behav]
+
+        return self.novelty_behav
 
     def compute_novelty_environment(self):
         time_idx = self.counter%self.mem_size # compute env perception and store in idx
@@ -431,5 +484,7 @@ class Swarm:
         nov = abs(new_b-old_b)
         if len(self.box_t) > 1:
             nov = nov*0.5 + abs(new_bt-old_bt)*0.5
+
+        # Normalize novelty if needed
 
         self.novelty_env = nov

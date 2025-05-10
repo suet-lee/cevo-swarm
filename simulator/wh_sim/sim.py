@@ -47,7 +47,7 @@ class Simulator:
             self.cfg.get('warehouse', 'object_position'),
             self.cfg.get('box_type_ratio'),
             self.cfg.get('phase_ratio'),
-            self.cfg.get('phase_change_rate'),
+            self.cfg.get('phase_change_rate',10),
             self.cfg.get('influence_r'))     
 
         self.warehouse.generate_ap(self.cfg)

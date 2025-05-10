@@ -131,6 +131,8 @@ class Swarm:
 
         # init computed metrics
         self.box_in_range = np.zeros(self.number_of_agents)
+        self.novelty_behav = np.zeros(self.number_of_agents)
+        self.novelty_env = np.zeros(self.number_of_agents)
 
     # @TODO allow for multiple behaviours, heterogeneous swarm
     def iterate(self, *args, **kwargs):
@@ -377,45 +379,6 @@ class Swarm:
         
         return (F_box_total, F_agent)
 
-    # TODO delete - not used
-    # Check if a collision has occurred and in those cases, generate a rebound force
-    # Call before random walk (which generates random movement)
-    # def check_collision(self, warehouse, respect_physics=False):
-    #     try:
-    #         no_agents = self.number_of_agents
-    #         no_boxes = warehouse.number_of_boxes
-    #         box_ag_dist = self.box_dist # shape (box_no, agent_no)
-    #         ag_ag_dist = self.agent_dist
-    #         ag_r = self.robot_r
-    #         box_r = warehouse.radius
-
-    #         # if interobject distance is < obj1_r+obj2_r, then we have a collision
-    #         tile_box_ag = np.tile(ag_r, (no_boxes, 1)) + np.transpose(np.tile(box_r, (no_agents, no_boxes)))
-    #         tile_ag_ag = np.tile(ag_r, (no_agents, 1))*2
-            
-    #         col_box_ag = box_ag_dist < tile_box_ag
-    #         col_ag_ag = ag_ag_dist < tile_ag_ag
-            
-    #         box_collisions = np.sum(col_box_ag, axis=1)
-    #         agent_collisions = np.sum(col_ag_ag, axis=1) - 1
-            
-    #         if not respect_physics:
-    #             return box_collisions, agent_collisions, warehouse.rob_d
-            
-    #         # remember to take into account picking up boxes
-    #         # warehouse.rob_d
-    #         # warehouse.rob_c
-    #         # warehouse.box_c
-    #         # cdist(box_c, rob_c)
-            
-    #         # print(ag_ag_dist)
-    #         # print(self.counter)
-    #         # time.sleep(600)
-    #         # exit()
-    #         # print('ag', b.shape)
-    #     except Exception as e:
-    #         print(e)
-
     def compute_metrics(self):
         # Global
         # self.number_of_agents
@@ -427,3 +390,14 @@ class Swarm:
         # self.wall_dist # walls in range
         self.box_in_range = sum(self.box_dist < self.camera_sensor_range_V[0]) # boxes in range
         # self.box_type # what type of box it's carrying
+
+        self.compute_novelty_behaviour()
+        self.compute_novelty_environment()
+
+    def compute_novelty_behaviour(self):
+        # self.novelty_behav = 
+        return
+
+    def compute_novelty_environment(self):
+        self.novelty_env = np.zeros(self.number_of_agents)
+        return

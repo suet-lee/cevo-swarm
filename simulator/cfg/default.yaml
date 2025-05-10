@@ -15,11 +15,11 @@ warehouse:
 
 faults: []
 
-time_limit: 50000
+time_limit: 200000
 animate: False
 save_animation: False
 export_data: True
-export_steps: 4
+export_steps: 200000
 heading_bias: False
 box_attraction: False
 heading_change_rate: 10 # ticks per change in heading

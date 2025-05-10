@@ -12,13 +12,13 @@ e_1:
     - ratio: 0.5
       params: [0.35,0.5,0.03,0.15]
       # order: Pm, D_m, SC, r0
-      use_fixed_rates: true # Same across all agents in a subculture,
+      use_fixed_rates: false # Same across all agents in a subculture,
       influence_rate: 0.6
       resistance_rate: 0.4
     - ratio: 0.5
       params: [0.7,0.5,0.03,0.45]
       # order: Pm, D_m, SC, r0
-      use_fixed_rates: true # Same across all agents in a subculture,
+      use_fixed_rates: false # Same across all agents in a subculture,
       influence_rate: 0.6
       resistance_rate: 0.4
 

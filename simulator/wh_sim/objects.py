@@ -457,6 +457,8 @@ class Swarm:
             comparisons = len(memory_vectors)
             self.novelty_behav[agent_id] = total_diff / comparisons if comparisons > 0 else 0.0
 
+        print(self.novelty_behav)
+
         # Normalize novelty if needed
         if max(self.novelty_behav) > 0:
             max_val = max(self.novelty_behav)

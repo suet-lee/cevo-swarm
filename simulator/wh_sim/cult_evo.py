@@ -94,11 +94,14 @@ class CA(Warehouse):
         self.box_d = np.array((active_boxes,active_boxes)).T*self.rob_d[self.robot_carrier] # move the boxes by the amount equal to the robot carrying them 
         self.box_c = self.box_c + self.box_d
 		
-        self.swarm.compute_metrics()
+        self.swarm.compute_metrics(self)
         s,u,e = self.select_phase()   
         self.socialize(s)
         self.update(u)
         self.execute_pickup_dropoff(e)
+
+        if self.counter > self.swarm.mem_size and self.counter%self.swarm.mem_size == 0:
+            self.adaptive_rate_tuning()
 
         self.counter += 1
         self.swarm.counter = self.counter
@@ -220,7 +223,7 @@ class CA(Warehouse):
                 # After the update, store the modified target_array back to self.BS_
                 setattr(self.swarm, attr, target_array)
 
-    def adaptive_rate_tuning(self, eta_alpha=0.1, gamma_alpha=0.5, normalize_novelty=True):
+    def adaptive_rate_tuning(self, eta_alpha=0.1, gamma_alpha=0.5):
 
         """
            Updates each agent's rates based on novelty.
@@ -231,7 +234,7 @@ class CA(Warehouse):
 
            """
 
-        for agent_id in range(self.swarm.num_agents):
+        for agent_id in range(self.swarm.number_of_agents):
             cur_inf_r= self.swarm.influence_rate[agent_id]
             cur_res_r = self.swarm.resistance_rate[agent_id]
 

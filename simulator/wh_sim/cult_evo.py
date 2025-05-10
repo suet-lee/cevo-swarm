@@ -29,9 +29,9 @@ class CA(Warehouse):
         self.social_transmission =[]
         self.self_updates = []
         self.r_phase = np.array([])
-        self.phase_change_rate = phase_change_rate
+        self.phase_change_rate = 10 #phase_change_rate
         self.verbose = True
-        self.continuous_traits = ['P_m', 'D_m', 'SC', 'r0']
+        self.continuous_traits = [] #['P_m', 'D_m', 'SC', 'r0']
 
 
     # def update_hook(self):
@@ -219,5 +219,29 @@ class CA(Warehouse):
 
                 # After the update, store the modified target_array back to self.BS_
                 setattr(self.swarm, attr, target_array)
+
+    def adaptive_rate_tuning(self, eta_alpha=0.1, gamma_alpha=0.5, normalize_novelty=True):
+
+        """
+           Updates each agent's rates based on novelty.
+           * eta_alpha :  between 0 and 1 ,
+           Learning Rate controls how quickly the influence rate changes based on novelty
+           * gamma_alpha : between -1 and 1
+           Sensitivity parameter controls direction and magnitude of the update,
+
+           """
+
+        for agent_id in range(self.swarm.num_agents):
+            cur_inf_r= self.swarm.influence_rate[agent_id]
+            cur_res_r = self.swarm.resistance_rate[agent_id]
+
+            # Update rule
+            new_inf_r = cur_inf_r + eta_alpha * gamma_alpha * self.swarm.novelty_behav[agent_id]
+            new_res_r = cur_res_r + eta_alpha * gamma_alpha * self.swarm.novelty_env[agent_id]
+
+            # Clamp to [0, 1]
+            self.swarm.influence_rate[agent_id] = max(0.0, min(1.0, new_inf_r))
+            self.swarm.resistance_rate[agent_id] = max(0.0, min(1.0, new_res_r))
+
 
 

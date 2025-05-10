@@ -139,7 +139,7 @@ class Swarm:
        
         self.novelty_behav = np.zeros(self.number_of_agents)
         self.novelty_behav_mem = []
-        for _ in range(self.swarm.num_agents):
+        for _ in range(self.number_of_agents):
             self.novelty_behav_mem.append({
                 attr: deque(maxlen=self.mem_size) for attr in ['P_m', 'D_m', 'SC', 'r0']
             })
@@ -414,12 +414,12 @@ class Swarm:
 
     def compute_novelty_behaviour(self):
         # Step 1: Observe and add neighbors' behaviors to memory
-        for agent_id in range(self.swarm.num_agents):
+        for agent_id in range(self.number_of_agents):
             for attr in ['P_m', 'D_m', 'SC', 'r0']:
                 source_array = getattr(self.swarm, attr)
                 param_size = self.swarm.no_ap if attr in ['P_m', 'D_m'] else self.swarm.no_box_t
 
-                for neighbor_id in range(self.swarm.num_agents):
+                for neighbor_id in range(self.number_of_agents):
                     if neighbor_id == agent_id:
                         continue
                     if self.swarm.agent_dist[agent_id][neighbor_id] < self.influence_r:
@@ -428,8 +428,8 @@ class Swarm:
                         self.novelty_behav_mem[agent_id][attr].append(tuple(neighbor_values))
 
         # Step 2: Compute novelty from memory only (concatenated behavior vector)
-        self.novelty_behav = [0.0] * self.swarm.num_agents
-        for agent_id in range(self.swarm.num_agents):
+        self.novelty_behav = [0.0] * self.number_of_agents
+        for agent_id in range(self.number_of_agents):
             agent_vector = []
             memory_vectors = []
 
@@ -456,6 +456,8 @@ class Swarm:
 
             comparisons = len(memory_vectors)
             self.novelty_behav[agent_id] = total_diff / comparisons if comparisons > 0 else 0.0
+
+        print(self.novelty_behav)
 
         # Normalize novelty if needed
         if max(self.novelty_behav) > 0:

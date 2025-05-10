@@ -128,11 +128,14 @@ class Swarm:
         self.base_pickup_p = 0.1
         self.base_dropoff_p = 0.1
         self.tau = 0.025
+        self.mem_size = 50
 
         # init computed metrics
         self.box_in_range = np.zeros(self.number_of_agents)
         self.novelty_behav = np.zeros(self.number_of_agents)
+        self.novelty_behav_mem = np.zeros(self.number_of_agents*self.mem_size)
         self.novelty_env = np.zeros(self.number_of_agents)
+        self.novelty_env_mem = np.zeros(self.number_of_agents*self.mem_size)
 
     # @TODO allow for multiple behaviours, heterogeneous swarm
     def iterate(self, *args, **kwargs):
@@ -391,11 +394,13 @@ class Swarm:
         self.box_in_range = sum(self.box_dist < self.camera_sensor_range_V[0]) # boxes in range
         # self.box_type # what type of box it's carrying
 
+        # Novelty metrics
         self.compute_novelty_behaviour()
         self.compute_novelty_environment()
 
     def compute_novelty_behaviour(self):
         # self.novelty_behav = 
+        # self.novelty_behav_mem = 
         return
 
     def compute_novelty_environment(self):

@@ -132,11 +132,14 @@ class Swarm:
 
         # init computed metrics
         self.box_in_range = np.zeros(self.number_of_agents)
+        self.box_in_range_mem = np.zeros((self.number_of_agents,self.mem_size))
+        self.box_t_in_range = np.zeros(self.number_of_agents)
+        self.box_t_in_range_mem = np.zeros((self.number_of_agents,self.mem_size))
+       
         self.novelty_behav = np.zeros(self.number_of_agents)
         self.novelty_behav_mem = np.zeros(self.number_of_agents*self.mem_size)
         self.novelty_env = np.zeros(self.number_of_agents)
-        self.novelty_env_mem = np.zeros(self.number_of_agents*self.mem_size)
-
+        
     # @TODO allow for multiple behaviours, heterogeneous swarm
     def iterate(self, *args, **kwargs):
         self.update_hook() # allow for updates to the swarm
@@ -391,9 +394,14 @@ class Swarm:
         # Local
         # self.agent_dist # number of agents in range
         # self.wall_dist # walls in range
-        self.box_in_range = sum(self.box_dist < self.camera_sensor_range_V[0]) # boxes in range
-        # self.box_type # what type of box it's carrying
-
+        in_range = self.box_dist < self.camera_sensor_range_V[0]
+        self.box_in_range = sum(in_range) # boxes in range
+        tile_box_t = np.tile(self.box_t,(1,len(self.box_t)))
+        bt_in_range = in_range*tile_box_t
+        for idx, it in enumerate(bt_in_range):
+            self.box_t_in_range[idx] = sum(np.unique(it))
+        self.box_t_in_range = np.zeros(self.number_of_agents)
+        
         # Novelty metrics
         self.compute_novelty_behaviour()
         self.compute_novelty_environment()
@@ -404,5 +412,24 @@ class Swarm:
         return
 
     def compute_novelty_environment(self):
-        self.novelty_env = np.zeros(self.number_of_agents)
-        return
+        time_idx = self.counter%self.mem_size # compute env perception and store in idx
+        # env perception is a function of number of boxes and types of boxes (to simplify things)
+        self.box_in_range_mem[:,time_idx] = self.box_in_range
+        self.box_t_in_range_mem[:,time_idx] = self.box_t_in_range
+        # compare first half of memory to last half
+        # oldest memory
+        if time_idx + self.mem_size/2 + 1 > self.mem_size:
+            end_idx = self.mem_size/2-time_idx - 1
+
+        else:
+            end_idx = time_idx + self.mem_size/2 + 1
+        
+        old_b = sum(self.box_in_range_mem[:,time_idx+1:end_idx])
+        old_bt = sum(self.box_t_in_range_mem[:,time_idx+1:end_idx])
+        new_b = sum(self.box_in_range_mem[:,end_idx:time_idx+1])
+        new_bt = sum(self.box_t_in_range_mem[:,end_idx:time_idx+1])
+        nov = abs(new_b-old_b)
+        if len(self.box_t) > 1:
+            nov = nov*0.5 + abs(new_bt-old_bt)*0.5
+
+        self.novelty_env = nov

@@ -48,7 +48,8 @@ class Simulator:
             self.cfg.get('box_type_ratio'),
             self.cfg.get('phase_ratio'),
             self.cfg.get('phase_change_rate'),
-            self.cfg.get('influence_r'))     
+            self.cfg.get('influence_r'),
+            self.cfg.get('adaptive_rate_tuning'))     
 
         self.warehouse.generate_ap(self.cfg)
         self.warehouse.verbose = self.verbose

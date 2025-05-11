@@ -1,0 +1,95 @@
+#### Experiments
+
+s_1:
+  data_dir: "s_1"
+  description: "1 box types, 2 AP, 2 culture"
+  box_type_ratio: [1.]
+  phase_ratio: [0,0,1] #[0.3,0.3,0.4]
+  phase_change_rate: 10
+  adaptive_rate_tuning: False
+  ap:
+    - [0.25,0.25]
+    - [0.75,0.75]
+
+  culture:
+    - ratio: 0.5
+      params: [0.35,0.5,0.035,0.05,0.03,0.15]
+      use_fixed_rates: true # Same across all agents in a subculture,
+      influence_rate: 0.6
+      resistance_rate: 0.4
+    - ratio: 0.5
+      params: [0.035,0.05,0.35,0.5,0.03,0.15]
+      use_fixed_rates: true # Same across all agents in a subculture,
+      influence_rate: 0.6
+      resistance_rate: 0.4
+
+  influence_r: 50
+
+s_2:
+  data_dir: "s_2"
+  description: "1 box types, 2 AP, 2 culture"
+  box_type_ratio: [1.]
+  phase_ratio: [0.3,0.3,0.4]
+  phase_change_rate: 10
+  adaptive_rate_tuning: False
+  ap:
+    - [0.25,0.25]
+    - [0.75,0.75]
+
+  culture:
+    - ratio: 0.5
+      params: [0.35,0.5,0.035,0.05,0.03,0.15]
+      use_fixed_rates: true # Same across all agents in a subculture,
+      influence_rate: 0.6
+      resistance_rate: 0.4
+    - ratio: 0.5
+      params: [0.035,0.05,0.35,0.5,0.03,0.15]
+      use_fixed_rates: true # Same across all agents in a subculture,
+      influence_rate: 0.6
+      resistance_rate: 0.4
+
+  influence_r: 50
+
+s_3:
+  data_dir: "s_3"
+  description: "1 box types, 2 AP, 2 culture"
+  box_type_ratio: [1.]
+  phase_ratio: [0.3,0.3,0.4]
+  phase_change_rate: 10
+  adaptive_rate_tuning: True
+  ap:
+    - [0.25,0.25]
+    - [0.75,0.75]
+
+  culture:
+    - ratio: 0.5
+      params: [0.35,0.5,0.035,0.05,0.03,0.15]
+      use_fixed_rates: true # Same across all agents in a subculture,
+      influence_rate: 0.6
+      resistance_rate: 0.4
+    - ratio: 0.5
+      params: [0.035,0.05,0.35,0.5,0.03,0.15]
+      use_fixed_rates: true # Same across all agents in a subculture,
+      influence_rate: 0.6
+      resistance_rate: 0.4
+
+  influence_r: 50
+
+s_4:
+  data_dir: "s_4"
+  description: "1 box types, 2 AP, 2 culture"
+  box_type_ratio: [0.5,0.5]
+  phase_ratio: [0.3,0.3,0.4]
+  phase_change_rate: 10
+  adaptive_rate_tuning: True
+  ap:
+    - [0.5,0.5]
+
+  culture:
+    - ratio: 1.
+      params: [0.35,0.5,0.03,0.15,0.03,0.15]
+      use_fixed_rates: true # Same across all agents in a subculture,
+      influence_rate: 0.6
+      resistance_rate: 0.4
+
+  influence_r: 50

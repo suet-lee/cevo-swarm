@@ -20,7 +20,8 @@ class CA(Warehouse):
 
     def __init__(self, width, height, number_of_boxes, box_radius, swarm,
 		init_object_positions=Warehouse.RANDOM_OBJ_POS, 
-        box_type_ratio=[1], phase_ratio=[0.3,0.3,0.4], phase_change_rate=10, influence_r=100):
+        box_type_ratio=[1], phase_ratio=[0.3,0.3,0.4], phase_change_rate=10, influence_r=100,
+        adaptive_rate_tuning=False):
         super().__init__(width, height, number_of_boxes, box_radius, swarm,
 		    init_object_positions=init_object_positions, box_type_ratio=box_type_ratio)
         
@@ -32,6 +33,7 @@ class CA(Warehouse):
         self.phase_change_rate = 10 #phase_change_rate
         self.verbose = True
         self.continuous_traits = ['P_m', 'D_m', 'SC', 'r0']
+        self.adaptive_rate_tuning = adaptive_rate_tuning
 
 
     # def update_hook(self):
@@ -100,7 +102,9 @@ class CA(Warehouse):
         self.update(u)
         self.execute_pickup_dropoff(e)
 
-        if self.counter > self.swarm.mem_size and self.counter%self.swarm.mem_size == 0:
+        if self.adaptive_rate_tuning and
+            self.counter > self.swarm.mem_size and 
+            self.counter%self.swarm.mem_size == 0:
             self.adaptive_rate_tuning()
 
         self.counter += 1
@@ -223,7 +227,7 @@ class CA(Warehouse):
                 # After the update, store the modified target_array back to self.BS_
                 setattr(self.swarm, attr, target_array)
 
-    def adaptive_rate_tuning(self, eta_alpha=0.1, gamma_alpha=0.5):
+    def adaptive_rate_tuning(self, alpha_inf=0.05, alpha_res=-1):
 
         """
            Updates each agent's rates based on novelty.
@@ -239,8 +243,8 @@ class CA(Warehouse):
             cur_res_r = self.swarm.resistance_rate[agent_id]
 
             # Update rule
-            new_inf_r = cur_inf_r + eta_alpha * gamma_alpha * self.swarm.novelty_behav[agent_id]
-            new_res_r = cur_res_r + eta_alpha * gamma_alpha * self.swarm.novelty_env[agent_id]
+            new_inf_r = cur_inf_r + alpha_inf * self.swarm.novelty_behav[agent_id]
+            new_res_r = cur_res_r + alpha_res * self.swarm.novelty_env[agent_id]
 
             # Clamp to [0, 1]
             self.swarm.influence_rate[agent_id] = max(0.0, min(1.0, new_inf_r))

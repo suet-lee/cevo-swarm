@@ -94,8 +94,8 @@ def animate_frames(data, time_step=1.0):
     #plt.show()
     anim.save('1746885691_animation.mp4', writer='ffmpeg', fps=10)
 
-#coords_1 = proc_data(pd.read_csv("data/e_1/1746885691/boxes.csv"))
-#draw_multiple_frames(coords_1)
+coords_1 = proc_data(pd.read_csv("data/e_1/1746920587/boxes.csv"))
+draw_multiple_frames(coords_1)
 
 
 #df = pd.read_csv('data/e_1/1746831890/boxes.csv')

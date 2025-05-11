@@ -5,6 +5,7 @@ e_1:
   description: "1 box type, 1 AP, 1 culture"
   box_type_ratio: [1.0]
   phase_ratio: [0.3,0.3,0.4]
+  phase_change_rate: 10
   ap:
     - [0.5,0.5]
 

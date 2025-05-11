@@ -458,9 +458,9 @@ class Swarm:
             self.novelty_behav[agent_id] = total_diff / comparisons if comparisons > 0 else 0.0
 
         # Normalize novelty if needed
-        if max(self.novelty_behav) > 0:
-            max_val = max(self.novelty_behav)
-            self.novelty_behav = [n / max_val for n in self.novelty_behav]
+        # if max(self.novelty_behav) > 0:
+        #     max_val = max(self.novelty_behav)
+        #     self.novelty_behav = [n / max_val for n in self.novelty_behav]
 
         return self.novelty_behav
 

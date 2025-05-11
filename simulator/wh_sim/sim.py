@@ -144,6 +144,10 @@ class Simulator:
             self.CA_data['self_updates'] = {}
         if 'r_phase' not in self.CA_data:
             self.CA_data['r_phase'] = {}
+        if 'influence_rates' not in self.CA_data:
+            self.CA_data['influence_rates'] = {}
+        if 'resistance_rates' not in self.CA_data:
+            self.CA_data['resistance_rates'] = {}
         
         self.CA_data['P_m'][self.warehouse.counter] = self.swarm.P_m.tolist()
         self.CA_data['D_m'][self.warehouse.counter] = self.swarm.D_m.tolist()
@@ -156,5 +160,7 @@ class Simulator:
         self.CA_data['social_transmission'][self.warehouse.counter] = self.warehouse.social_transmission
         self.CA_data['self_updates'][self.warehouse.counter] = self.warehouse.self_updates.tolist()
         self.CA_data['r_phase'][self.warehouse.counter] = self.warehouse.r_phase.tolist()
+        self.CA_data['influence_rates'][self.warehouse.counter] = self.swarm.influence_rate.tolist()
+        self.CA_data['resistance_rates'][self.warehouse.counter] = self.swarm.resistance_rate.tolist()
 
 

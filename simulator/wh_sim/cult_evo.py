@@ -31,7 +31,7 @@ class CA(Warehouse):
         self.r_phase = np.array([])
         self.phase_change_rate = 10 #phase_change_rate
         self.verbose = True
-        self.continuous_traits = [] #['P_m', 'D_m', 'SC', 'r0']
+        self.continuous_traits = ['P_m', 'D_m', 'SC', 'r0']
 
 
     # def update_hook(self):

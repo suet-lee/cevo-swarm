@@ -33,7 +33,7 @@ class CA(Warehouse):
         self.phase_change_rate = 10 #phase_change_rate
         self.verbose = True
         self.continuous_traits = ['P_m', 'D_m', 'SC', 'r0']
-        self.adaptive_rate_tuning = adaptive_rate_tuning
+        self.adapt_rate = adaptive_rate_tuning
 
 
     # def update_hook(self):
@@ -102,7 +102,7 @@ class CA(Warehouse):
         self.update(u)
         self.execute_pickup_dropoff(e)
 
-        if self.adaptive_rate_tuning and self.counter > self.swarm.mem_size and self.counter%self.swarm.mem_size == 0:
+        if self.adapt_rate and self.counter > self.swarm.mem_size and self.counter%self.swarm.mem_size == 0:
             self.adaptive_rate_tuning()
 
         self.counter += 1

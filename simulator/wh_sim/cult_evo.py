@@ -102,9 +102,7 @@ class CA(Warehouse):
         self.update(u)
         self.execute_pickup_dropoff(e)
 
-        if self.adaptive_rate_tuning and
-            self.counter > self.swarm.mem_size and 
-            self.counter%self.swarm.mem_size == 0:
+        if self.adaptive_rate_tuning and self.counter > self.swarm.mem_size and self.counter%self.swarm.mem_size == 0:
             self.adaptive_rate_tuning()
 
         self.counter += 1

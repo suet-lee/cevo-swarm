@@ -139,11 +139,17 @@ class CA(Warehouse):
 
             BS1.update_store(BS2.store,fit2)
             BS2.update_store(BS1.store,fit1)
-            BS1.update_from_xover()
-            BS2.update_from_xover()
+            BS1.update_from_bank()
+            BS2.update_from_bank()
 
     def _gen_input_metrics(self, rid):
-        return []
+        return [
+            self.swarm.closest_ap[rid],
+            self.swarm.closest_ap_dist[rid],
+            self.swarm.agents_in_range[rid],
+            self.swarm.box_in_range[rid],
+            self.swarm.agent_has_box[rid]
+        ]
 
     # TODO asynchronous evo ?
     # This is called after the main step function (step forward in swarm behaviour)

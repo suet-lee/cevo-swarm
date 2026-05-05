@@ -104,10 +104,13 @@ class Swarm:
         self.mem_size = 50
 
         # init computed metrics # used to compute novelty
+        self.agents_in_range = np.zeros(self.number_of_agents)
         self.box_in_range = np.zeros(self.number_of_agents)
         self.box_in_range_mem = np.zeros((self.number_of_agents,self.mem_size))
-        self.box_t_in_range = np.zeros(self.number_of_agents)
-        self.box_t_in_range_mem = np.zeros((self.number_of_agents,self.mem_size))
+        self.closest_ap = np.zeros(self.number_of_agents)
+        self.closest_ap_dist = np.zeros(self.number_of_agents)
+        # self.box_t_in_range = np.zeros(self.number_of_agents)
+        # self.box_t_in_range_mem = np.zeros((self.number_of_agents,self.mem_size))
         self.novelty_env = np.zeros(self.number_of_agents)
 
         self.bank_size = cfg.get('bank_size')
@@ -215,6 +218,7 @@ class Swarm:
             # check pickup probability for closest ap
             d_ap = cdist(warehouse.ap, warehouse.box_c[box_id])
             closest_ap = np.argmin(d_ap,0)
+
             d = np.min(d_ap,0)
             
             # if points out of range, probability of pickup is fixed at base rate
@@ -372,14 +376,19 @@ class Swarm:
         # self.number_of_zones
 
         # Local
-        # self.agent_dist # number of agents in range
         # self.wall_dist # walls in range
-        in_range = self.box_dist < self.camera_sensor_range_V[0]
-        self.box_in_range = sum(in_range) # boxes in range
-        tile_box_t = np.tile(warehouse.box_types,(self.number_of_agents,1))+1 # add 1 to box type ID
-        bt_in_range = in_range.astype(int)*tile_box_t.T
-        for idx, it in enumerate(bt_in_range.T):
-            self.box_t_in_range[idx] = sum(np.unique(it))
+        d_ap = cdist(warehouse.ap, warehouse.rob_c)
+        self.closest_ap_dist = d_ap.sum(axis=0)
+        self.closest_ap = np.argmin(d_ap,0)
+        ag_in_range = self.agent_dist < self.camera_sensor_range_V[0]
+        self.agents_in_range = sum(ag_in_range) 
+        box_in_range = self.box_dist < self.camera_sensor_range_V[0]
+        self.box_in_range = sum(box_in_range) # boxes in range
+        # self.agent_has_box # 1 if agent is carrying box
+        # tile_box_t = np.tile(warehouse.box_types,(self.number_of_agents,1))+1 # add 1 to box type ID
+        # bt_in_range = in_range.astype(int)*tile_box_t.T
+        # for idx, it in enumerate(bt_in_range.T):
+        #     self.box_t_in_range[idx] = sum(np.unique(it))
         
         # Evaluate context
         self.compute_novelty_environment(warehouse)
@@ -388,7 +397,7 @@ class Swarm:
         time_idx = self.counter%self.mem_size # compute env perception and store in idx
         # env perception is a function of number of boxes and types of boxes (to simplify things)
         self.box_in_range_mem[:,time_idx] = self.box_in_range
-        self.box_t_in_range_mem[:,time_idx] = self.box_t_in_range
+        # self.box_t_in_range_mem[:,time_idx] = self.box_t_in_range
         
         # compare first half of memory to last half
         if time_idx + self.mem_size/2 > self.mem_size:
@@ -396,17 +405,17 @@ class Swarm:
             old_b = np.sum(self.box_in_range_mem[:,time_idx:],axis=1)+np.sum(self.box_in_range_mem[:,:end_idx],axis=1)
             new_b = np.sum(self.box_in_range_mem[:,end_idx:time_idx],axis=1)
             # box type
-            old_bt = np.sum(self.box_t_in_range_mem[:,time_idx:],axis=1)+np.sum(self.box_t_in_range_mem[:,:end_idx],axis=1)
-            new_bt = np.sum(self.box_t_in_range_mem[:,end_idx:time_idx],axis=1)
+            # old_bt = np.sum(self.box_t_in_range_mem[:,time_idx:],axis=1)+np.sum(self.box_t_in_range_mem[:,:end_idx],axis=1)
+            # new_bt = np.sum(self.box_t_in_range_mem[:,end_idx:time_idx],axis=1)
         else:
             end_idx = time_idx + int(self.mem_size/2)
             old_b = np.sum(self.box_in_range_mem[:,time_idx:end_idx],axis=1)
             new_b = np.sum(self.box_in_range_mem[:,:time_idx],axis=1)+np.sum(self.box_in_range_mem[:,end_idx:],axis=1)
             # box type
-            old_bt = np.sum(self.box_t_in_range_mem[:,time_idx:end_idx],axis=1)
-            new_bt = np.sum(self.box_t_in_range_mem[:,:time_idx],axis=1)+np.sum(self.box_t_in_range_mem[:,end_idx:],axis=1)
+            # old_bt = np.sum(self.box_t_in_range_mem[:,time_idx:end_idx],axis=1)
+            # new_bt = np.sum(self.box_t_in_range_mem[:,:time_idx],axis=1)+np.sum(self.box_t_in_range_mem[:,end_idx:],axis=1)
         
         nov = abs(new_b-old_b)/self.mem_size#/warehouse.number_of_boxes
-        amp_f = 1 + np.log(abs(old_bt-new_bt)/self.mem_size+1)/2 #TODO check this - is it needed
+        # amp_f = 1 + np.log(abs(old_bt-new_bt)/self.mem_size+1)/2 #TODO check this - is it needed
         
-        self.novelty_env = np.minimum(np.ones(self.number_of_agents),amp_f*nov/20)
+        self.novelty_env = np.minimum(np.ones(self.number_of_agents),nov/20)

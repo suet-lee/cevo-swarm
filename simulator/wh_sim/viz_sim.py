@@ -59,17 +59,18 @@ class VizSim(Simulator):
         self.exit_sim(counter)
 
     def animate(self, i, counter, dot=None, box=None, h_line=None, cam_range=None):
-        cam_range.set_data(
-            [self.warehouse.rob_c[i,0] for i in range(self.cfg.get('warehouse', 'number_of_agents'))],
-            [self.warehouse.rob_c[i,1] for i in range(self.cfg.get('warehouse', 'number_of_agents'))]
-        )
+        if cam_range is not None:
+            cam_range.set_data(
+                [self.warehouse.rob_c[i,0] for i in range(self.cfg.get('warehouse', 'number_of_agents'))],
+                [self.warehouse.rob_c[i,1] for i in range(self.cfg.get('warehouse', 'number_of_agents'))]
+            )
 
         x_data, y_data, _ = self.generate_dot_positional_data()
         for i in range(len(dot)):
             dot[i].set_data(x_data[i], y_data[i])
             
         for i in range(len(box)):
-            box[i].set_data(self.warehouse.box_c[i,0],self.warehouse.box_c[i,1])
+            box[i].set_data([self.warehouse.box_c[i,0]],[self.warehouse.box_c[i,1]])
 
         h_x_vec, h_y_vec = self.generate_dot_heading_arrow()
         for i in range(self.swarm.number_of_agents):
@@ -129,16 +130,16 @@ class VizSim(Simulator):
 
         # assume all swarm radius same
         marker_size = 12.5
-        cam_range_marker_size = marker_size/self.swarm.robot_r[0]*self.swarm.camera_sensor_range_V[0]
-        cam_range, = ax.plot(
-            [self.warehouse.rob_c[i,0] for i in range(self.cfg.get('warehouse', 'number_of_agents'))],
-            [self.warehouse.rob_c[i,1] for i in range(self.cfg.get('warehouse', 'number_of_agents'))], 
-            'ko', 
-            markersize = cam_range_marker_size,
-            # linestyle=":",
-            color="#f2f2f2",
-            fillstyle='none'
-        )
+        # cam_range_marker_size = marker_size/self.swarm.robot_r[0]*self.swarm.camera_sensor_range_V[0]
+        # cam_range, = ax.plot(
+        #     [self.warehouse.rob_c[i,0] for i in range(self.cfg.get('warehouse', 'number_of_agents'))],
+        #     [self.warehouse.rob_c[i,1] for i in range(self.cfg.get('warehouse', 'number_of_agents'))], 
+        #     'ko', 
+        #     markersize = cam_range_marker_size,
+        #     # linestyle=":",
+        #     color="#f2f2f2",
+        #     fillstyle='none'
+        # )
 
         x_data, y_data, marker = self.generate_dot_positional_data()
         dot = {}
@@ -182,8 +183,8 @@ class VizSim(Simulator):
         self.anim = animation.FuncAnimation(fig, self.iterate, 
             frames=10000, 
             interval=0.1, 
-            save_count=sys.maxsize,
-            fargs=(dot, box, h_line, cam_range))
+            # save_count=sys.maxsize,
+            fargs=(dot, box, h_line))#, cam_range))
 
         # ex = [self.cfg.get('warehouse', 'width')-self.cfg.get('warehouse', 'exit_width'), self.cfg.get('warehouse', 'width')-self.cfg.get('warehouse', 'exit_width')]
         # ey = [0, self.cfg.get('warehouse', 'height')]

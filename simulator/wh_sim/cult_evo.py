@@ -20,21 +20,19 @@ class CA(Warehouse):
 
     def __init__(self, width, height, number_of_boxes, box_radius, swarm,
 		init_object_positions=Warehouse.RANDOM_OBJ_POS, 
-        box_type_ratio=[1], phase_ratio=[0.3,0.3,0.4], phase_change_rate=10, influence_r=100,
-        adaptive_rate_tuning=False):
+        phase_ratio=[0.3,0.3,0.4], phase_change_rate=10, influence_r=100):
         super().__init__(width, height, number_of_boxes, box_radius, swarm,
-		    init_object_positions=init_object_positions, box_type_ratio=box_type_ratio)
+		    init_object_positions=init_object_positions)
         
         self.influence_r = influence_r
         self.phase_ratio = phase_ratio
-        self.social_transmission =[]
-        self.self_updates = []
+        self.social_transmission_log =[]
+        self.updates_log = []
         self.r_phase = np.array([])
         self.phase_change_rate = 10 #phase_change_rate
-        self.verbose = True
-        self.continuous_traits = ['P_m', 'D_m', 'SC', 'r0']
-        self.adapt_rate = adaptive_rate_tuning
-
+        # self.verbose = True
+        self.no_agents = swarm.number_of_agents
+    
 
     # def update_hook(self):
         #
@@ -46,7 +44,7 @@ class CA(Warehouse):
             
             # Generate phase array based on probabilities
             phase = np.random.choice([self.PHASE_SOCIAL_LEARNING, self.PHASE_UPDATE_BEHAVIOUR, self.PHASE_EXECUTE_BEHAVIOUR],
-                                    size=self.swarm.number_of_agents,
+                                    size=self.no_agents,
                                     p=probabilities)
             self.r_phase = phase
         else:
@@ -69,7 +67,7 @@ class CA(Warehouse):
             for d in drop:
                 box_d = cdist([self.box_c[d]],self.box_c).flatten()
                 count = len(np.argwhere(box_d<10).flatten())
-                if count < 3:
+                if count < 3: # Only allow 2 boxes in diameter 10 around robot
                     valid_drop.append(d)
                     rob_n.append(self.robot_carrier[d])
 
@@ -102,16 +100,17 @@ class CA(Warehouse):
         self.update(u)
         self.execute_pickup_dropoff(e)
 
-        if self.adapt_rate and self.counter > self.swarm.mem_size and self.counter%self.swarm.mem_size == 0:
-            self.adaptive_rate_tuning()
-
         self.counter += 1
         self.swarm.counter = self.counter
+
+    def compute_agent_difference(self, id1, id2):
+        return abs(self.swarm.novelty_env[id1]-self.swarm.novelty_env[id2])
 
     def socialize(self, agent_ids):
         used = set()
         noise_strength = 0.01  # Adjust based on your scale
-        self.social_transmission = []
+        self.social_transmission_log = []
+        random.shuffle(agent_ids)
 
         for id1, id2 in combinations(agent_ids, 2):
             if id1 in used or id2 in used:
@@ -121,132 +120,57 @@ class CA(Warehouse):
             if dist >= self.influence_r:
                 continue
 
-            # Get influence rates
-            rate1 = self.swarm.influence_rate[id1]
-            rate2 = self.swarm.influence_rate[id2]
+            # if self.verbose:
+            #     print(
+            #         f"Agents {influencer} (more influential) & {influencee} interacting — influence_prob: {influence_prob:.2f}, dist: {dist:.2f}")
+            
+            used.update([id1, id2])
+            self.social_transmission_log.append([id1, id2])
+            ag_diff = self.compute_agent_difference(id1, id2)
 
+            fit1 = self.swarm.novelty_env[id1]
+            fit2 = self.swarm.novelty_env[id2]
+            BS1 = self.swarm.BS[id1]
+            BS2 = self.swarm.BS[id2]
 
-            # Determine influencee and influencer
-            if rate1 > rate2:
-                influencer, influencee = id1, id2
-                influence_prob = rate1 * (1 - rate2)
-                reverse_influence_prob = rate2 * (1 - rate1)
-            elif rate2 > rate1:
-                influencer, influencee = id2, id1
-                influence_prob = rate2 * (1 - rate1)
-                reverse_influence_prob = rate1 * (1 - rate2)
-            else:
-                influencer, influencee = id1, id2  # Arbitrary order
-                influence_prob = rate1 * (1 - rate2)
-                reverse_influence_prob = influence_prob  # Same value
-                # or
-                # continue  # no update if influence is identical
+            if ag_diff > self.swarm.tolerance:
+                fit1 = 1-fit1
+                fit2 = 1-fit2
 
-            weight = influence_prob
-            rev_weight = reverse_influence_prob
+            BS1.update_store(BS2.store,fit2)
+            BS2.update_store(BS1.store,fit1)
+            BS1.update_from_xover()
+            BS2.update_from_xover()
 
-            if self.verbose:
-                print(
-                    f"Agents {influencer} (more influential) & {influencee} interacting — influence_prob: {influence_prob:.2f}, dist: {dist:.2f}")
-                used.update([id1, id2])
-
-            self.social_transmission.append([id1, id2])
-
-            # Each param: behaviour → BS_ version
-            for attr in ['P_m', 'D_m', 'SC', 'r0']:
-                source_array = getattr(self.swarm, attr) # Behaviour param
-                target_array = getattr(self.swarm, f'BS_{attr}')  # belief space param
-
-                param_size = self.swarm.no_ap if attr in ['P_m', 'D_m'] else self.swarm.no_box_t
-
-                start_inf = influencer * param_size
-                start_infce = influencee * param_size
-
-                for i in range(param_size):
-                    if attr in self.continuous_traits :
-                        v_inf = source_array[start_inf + i]
-                        v_infce = source_array[start_infce + i]
-                        if random.random() < influence_prob:
-                            new_value = v_infce + weight * (v_inf - v_infce) + random.gauss(0,noise_strength)
-                            target_array[start_infce + i] = min(max(new_value, 0), 1)
-                        if random.random() < reverse_influence_prob:
-                            new_value = v_inf - rev_weight * (v_inf - v_infce) + random.gauss(0,noise_strength)
-                            target_array[start_inf + i] = min(max(new_value, 0), 1)
-                    else:
-                        if random.random() < influence_prob:
-                            target_array[start_infce + i] = source_array[start_inf + i]
-                        if random.random() < reverse_influence_prob:
-                            target_array[start_inf + i] = source_array[start_infce + i]
-
-
-
-
-
-
-                # After the update, store the modified target_array back to self.BS_
-                setattr(self.swarm, f'BS_{attr}', target_array)
-
-
+    def _gen_input_metrics(self, rid):
+        return []
 
     # TODO asynchronous evo ?
     # This is called after the main step function (step forward in swarm behaviour)
     def update(self, agent_ids):
 
-        self.self_updates = agent_ids
-        noise_strength = 0.01  # Small amount of stochasticity
+        self.self_updates_log = agent_ids
+        # noise_strength = 0.01  # Small amount of stochasticity #TODO remove redundancy
 
         for id in agent_ids:
+            # Generate parameters from BS (norm interpretation)
+            metrics = self._gen_input_metrics(id)
+            new_params = self.swarm.BS[id].generate_norm(metrics)
+            start_index = id * self.swarm.no_ap
+
             # Each param: behaviour → BS_ version
-            for attr in ['P_m', 'D_m', 'SC', 'r0']:
-                target_array = getattr(self.swarm, attr)  # Behaviour param
-                source_array= getattr(self.swarm, f'BS_{attr}')  # belief space param
+            for attr in ["P_m","D_m","SC","r0"]:
+                try:
+                    target_array = getattr(self.swarm, attr)  # Get the stored behaviour param
+                    source_array= getattr(new_params, attr)  # Get the generated belief space param
 
-                param_size = self.swarm.no_ap if attr in ['P_m', 'D_m'] else self.swarm.no_box_t
+                    for i in range(self.swarm.no_ap):
+                        v_new = source_array[start_index + i]
+                        target_array[start_index + i] = v_new
 
-                start_index = id * param_size
-                weight = 1 - self.swarm.resistance_rate[id]
-
-                for i in range(param_size):
-                    v_behavior = target_array[start_index + i]
-                    v_belief = source_array[start_index + i]
-
-                    if attr in self.continuous_traits :
-                        # Gradual update for continuous traits with noise
-                        new_value = (
-                                v_behavior + weight * (v_belief - v_behavior) + random.gauss(0, noise_strength)
-                        )
-                        target_array[start_index + i] = min(max(new_value, 0), 1)
-                    else:
-                        # Probabilistic full copy for discrete traits
-                        if random.random() < weight:  # Use weight as probability for the update
-                            target_array[start_index + i] = v_belief  # Full adoption of belief
-
-
-                # After the update, store the modified target_array back to self.BS_
-                setattr(self.swarm, attr, target_array)
-
-    def adaptive_rate_tuning(self, alpha_inf=0.05, alpha_res=-1):
-
-        """
-           Updates each agent's rates based on novelty.
-           * eta_alpha :  between 0 and 1 ,
-           Learning Rate controls how quickly the influence rate changes based on novelty
-           * gamma_alpha : between -1 and 1
-           Sensitivity parameter controls direction and magnitude of the update,
-
-           """
-
-        for agent_id in range(self.swarm.number_of_agents):
-            cur_inf_r= self.swarm.influence_rate[agent_id]
-            cur_res_r = self.swarm.resistance_rate[agent_id]
-
-            # Update rule
-            new_inf_r = cur_inf_r + alpha_inf * self.swarm.novelty_behav[agent_id]
-            new_res_r = cur_res_r + alpha_res * self.swarm.novelty_env[agent_id]
-
-            # Clamp to [0, 1]
-            self.swarm.influence_rate[agent_id] = max(0.0, min(1.0, new_inf_r))
-            self.swarm.resistance_rate[agent_id] = max(0.0, min(1.0, new_res_r))
-
+                    # After the update, store the modified target_array back to self.BS_
+                    setattr(self.swarm, attr, target_array)
+                except Exception as e:
+                    pass
 
 

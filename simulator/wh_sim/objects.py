@@ -4,6 +4,8 @@ from scipy.spatial.distance import cdist
 import random
 from collections import deque
 
+from . import BeliefSpace
+
 class Robot:
 
     # max_v: max speed, assume robot moves at max speed if healthy
@@ -25,6 +27,7 @@ class Swarm:
         self.counter = 0
         self.F_heading = None
         self.agent_dist = None
+        self.BS = {}
 
     def add_agents(self, agent_obj, number):
         self.agents.append((agent_obj, number))
@@ -59,21 +62,13 @@ class Swarm:
         # box interaction probabilities
         culture = cfg.get('culture')
         self.no_ap = len(cfg.get('ap'))
-        self.no_box_t = len(cfg.get('box_type_ratio'))
-        self.influence_rate = []
-        self.resistance_rate = []
+        # self.no_box_t = len(cfg.get('box_type_ratio')) #TODO remove unused
 
         # Behavioural parameters : used in their behaviour
         self.P_m = np.array([]) # pickup probability parameter
         self.D_m = np.array([]) # dropoff probability parameter
         self.SC = np.array([]) # amplification factor threshold for stone count
         self.r0 = np.array([]) # wall template radius from aggregation point (i.e. nest site)
-
-        # Belief space parameters
-        self.BS_P_m = np.array([])  # pickup probability parameter
-        self.BS_D_m = np.array([])  # dropoff probability parameter
-        self.BS_SC = np.array([])  # amplification factor threshold for stone count
-        self.BS_r0 = np.array([])  # wall template radius from aggregation point (i.e. nest site)
 
         for subc in culture:
             no_agents = math.floor(self.number_of_agents*subc['ratio'])
@@ -82,44 +77,21 @@ class Swarm:
             D_m_vec = []
             SC_vec = []
             r0_vec = []
+
             for it in range(self.no_ap):
-                P_m_vec.append(subc['params'][2*it])
-            for it in range(self.no_ap):
-                D_m_vec.append(subc['params'][2*it+1])
-            for it in range(self.no_box_t):
-                SC_vec.append(subc['params'][2*it+2*self.no_ap])
-            for it in range(self.no_box_t):
-                r0_vec.append(subc['params'][2*it+2*self.no_ap+1])
+                P_m_vec.append(subc['params0'][2*it])
+                D_m_vec.append(subc['params0'][2*it+1])
+                SC_vec.append(subc['params0'][2*it+2])
+                r0_vec.append(subc['params0'][2*it+3])
             
             P_m = np.tile(P_m_vec,(1,no_agents)).flatten()
             D_m = np.tile(D_m_vec,(1,no_agents)).flatten()
             SC = np.tile(SC_vec,(1,no_agents)).flatten()
             r0 = np.tile(r0_vec,(1,no_agents)).flatten()
-            self.P_m = np.concatenate((self.P_m,P_m))
+            self.P_m = np.concatenate((self.P_m,P_m)) # [ag1_Pm1, ag1_Pm2, ag2_Pm1, ag2_Pm2,...]
             self.D_m = np.concatenate((self.D_m,D_m))
             self.SC = np.concatenate((self.SC,SC))
             self.r0 = np.concatenate((self.r0,r0))
-
-            if subc.get("use_fixed_rates", True):
-                inf_rate = subc.get("influence_rate", 0.5)
-                res_rate = subc.get("resistance_rate", 0.5)
-                self.influence_rate.extend([inf_rate] * no_agents)
-                self.resistance_rate.extend([res_rate] * no_agents)
-            else:
-                inf_range = subc.get("influence_range", (0.4, 0.9))
-                res_range = subc.get("resistance_range", (0.2, 0.8))
-                for _ in range(no_agents):
-                    self.influence_rate.append(random.uniform(*inf_range))
-                    self.resistance_rate.append(random.uniform(*res_range))
-
-        self.influence_rate = np.array(self.influence_rate)
-        self.resistance_rate = np.array(self.resistance_rate)
-
-        # initialise the belief space
-        self.BS_P_m = self.P_m
-        self.BS_D_m = self.D_m
-        self.BS_SC = self.SC
-        self.BS_r0 = self.r0
 
         # fixed parameters: in future these could also be evolved in the belief space
         self.G_max = 0.55
@@ -131,19 +103,26 @@ class Swarm:
         self.tau = 0.025
         self.mem_size = 50
 
-        # init computed metrics
+        # init computed metrics # used to compute novelty
         self.box_in_range = np.zeros(self.number_of_agents)
         self.box_in_range_mem = np.zeros((self.number_of_agents,self.mem_size))
         self.box_t_in_range = np.zeros(self.number_of_agents)
         self.box_t_in_range_mem = np.zeros((self.number_of_agents,self.mem_size))
-       
-        self.novelty_behav = np.zeros(self.number_of_agents)
-        self.novelty_behav_mem = []
-        for _ in range(self.number_of_agents):
-            self.novelty_behav_mem.append({
-                attr: deque(maxlen=self.mem_size) for attr in ['P_m', 'D_m', 'SC', 'r0']
-            })
         self.novelty_env = np.zeros(self.number_of_agents)
+
+        self.bank_size = cfg.get('bank_size')
+        self.nn_layers = cfg.get('nn_layers')
+        self.tolerance = cfg.get('tolerance')
+
+        # init belief spaces
+        for subc in culture:
+            no_agents = math.floor(self.number_of_agents*subc['ratio'])
+            for i in range(self.number_of_agents):
+                self.BS[i] = BeliefSpace(bank_size=culture) #TODO add xover_rate and mutation_rate
+                self.BS[i].init_nn_model(self.nn_layers[0], 
+                                        self.nn_layers[-1], 
+                                        self.nn_layers[1:-1],
+                                        subc['belief'])
         
     # @TODO allow for multiple behaviours, heterogeneous swarm
     def iterate(self, *args, **kwargs):
@@ -237,17 +216,15 @@ class Swarm:
             d_ap = cdist(warehouse.ap, warehouse.box_c[box_id])
             closest_ap = np.argmin(d_ap,0)
             d = np.min(d_ap,0)
-            box_type = warehouse.box_types[box_id]
+            
             # if points out of range, probability of pickup is fixed at base rate
             if d > self.camera_sensor_range_V[closest_r]:
                 p = self.base_pickup_p
             else:
                 d_ = d#(d*2/self.camera_sensor_range_V[closest_r]).flatten()
-                ap = warehouse.ap[closest_ap]
                 idx = closest_r*len(warehouse.ap)+closest_ap
-                param_idx = closest_r*warehouse.number_of_box_types + box_type
-                SC = self.SC[param_idx]*warehouse.number_of_boxes # SC is in range [0,1]
-                r0 = self.r0[param_idx]*min(warehouse.width,warehouse.height)
+                SC = self.SC[idx]*warehouse.number_of_boxes # SC is in range [0,1]
+                r0 = self.r0[idx]*min(warehouse.width,warehouse.height)
                 p = self.P_m[idx]*( 1 - 1/(1+self.tau*(d_-r0)*(d_-r0)) ).flatten()
                 p = self._G(p, closest_r, SC)
             
@@ -281,10 +258,8 @@ class Swarm:
         d2 = d1#d1*2/self.camera_sensor_range_V[rob_id] # scale down by factor cam_range/2
         
         idx = rob_id*len(warehouse.ap)+ap_idx
-        box_types = warehouse.box_types[active_box_id]
-        param_idx = rob_id*self.no_box_t + box_types
-        SC = self.SC[param_idx]*warehouse.number_of_boxes # SC is in range [0,1]
-        r0 = self.r0[param_idx]*min(warehouse.width,warehouse.height)
+        SC = self.SC[idx]*warehouse.number_of_boxes # SC is in range [0,1]
+        r0 = self.r0[idx]*min(warehouse.width,warehouse.height)
         p = self.D_m[idx]/(1+self.tau*(d2-r0)*(d2-r0))
         p = self._F(p,rob_id,SC)
         
@@ -406,62 +381,8 @@ class Swarm:
         for idx, it in enumerate(bt_in_range.T):
             self.box_t_in_range[idx] = sum(np.unique(it))
         
-        # Novelty metrics
-        self.compute_novelty_behaviour(warehouse)
+        # Evaluate context
         self.compute_novelty_environment(warehouse)
-
-    # TODO vectorize ~
-    def compute_novelty_behaviour(self, warehouse):
-        # Step 1: Observe and add neighbors' behaviors to memory
-        for agent_id in range(self.number_of_agents):
-            for attr in ['P_m', 'D_m', 'SC', 'r0']:
-                source_array = getattr(self, attr)
-                param_size = self.no_ap if attr in ['P_m', 'D_m'] else self.no_box_t
-
-                for neighbor_id in range(self.number_of_agents):
-                    if neighbor_id == agent_id:
-                        continue
-                    if self.agent_dist[agent_id][neighbor_id] < warehouse.influence_r:
-                        neighbor_start = neighbor_id * param_size
-                        neighbor_values = source_array[neighbor_start:neighbor_start + param_size]
-                        self.novelty_behav_mem[agent_id][attr].append(tuple(neighbor_values))
-
-        # Step 2: Compute novelty from memory only (concatenated behavior vector)
-        self.novelty_behav = [0.0] * self.number_of_agents
-        for agent_id in range(self.number_of_agents):
-            agent_vector = []
-            memory_vectors = []
-
-            # Build full behavior vector for current agent and memory
-            for attr in ['P_m', 'D_m', 'SC', 'r0']:
-                source_array = getattr(self, attr)
-                param_size = self.no_ap if attr in ['P_m', 'D_m'] else self.no_box_t
-                agent_start = agent_id * param_size
-                agent_vector.extend(source_array[agent_start:agent_start + param_size])
-
-                # Collect all past neighbor behavior vectors for this attribute
-                for i, past in enumerate(self.novelty_behav_mem[agent_id][attr]):
-                    # Make sure memory_vectors[i] exists and is extendable
-                    if len(memory_vectors) <= i:
-                        memory_vectors.append(list(past))
-                    else:
-                        memory_vectors[i].extend(past)
-
-            # Now compute Euclidean distance from agent_vector to each memory_vector
-            total_diff = 0.0
-            for past_vector in memory_vectors:
-                diff = sum((a - b) ** 2 for a, b in zip(agent_vector, past_vector)) ** 0.5
-                total_diff += diff
-
-            comparisons = len(memory_vectors)
-            self.novelty_behav[agent_id] = total_diff / comparisons if comparisons > 0 else 0.0
-
-        # Normalize novelty if needed
-        # if max(self.novelty_behav) > 0:
-        #     max_val = max(self.novelty_behav)
-        #     self.novelty_behav = [n / max_val for n in self.novelty_behav]
-
-        return self.novelty_behav
 
     def compute_novelty_environment(self,warehouse):
         time_idx = self.counter%self.mem_size # compute env perception and store in idx
@@ -486,7 +407,6 @@ class Swarm:
             new_bt = np.sum(self.box_t_in_range_mem[:,:time_idx],axis=1)+np.sum(self.box_t_in_range_mem[:,end_idx:],axis=1)
         
         nov = abs(new_b-old_b)/self.mem_size#/warehouse.number_of_boxes
-        amp_f = 1 + np.log(abs(old_bt-new_bt)/self.mem_size+1)/2
+        amp_f = 1 + np.log(abs(old_bt-new_bt)/self.mem_size+1)/2 #TODO check this - is it needed
         
         self.novelty_env = np.minimum(np.ones(self.number_of_agents),amp_f*nov/20)
-        print(self.novelty_env,"\n")

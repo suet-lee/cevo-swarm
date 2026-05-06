@@ -5,11 +5,11 @@ from . import nnModel
 
 class BeliefSpace:
 
-    def __init__(self, mutation_rate=0.1, select_t=1, bank_size=None):
+    def __init__(self, mutation_rate=0.1, select_t=1, bank_size=5):
         self.store = []
         self.belief_bank = []
         self.mutation_rate = mutation_rate
-        self.select_t=1
+        self.select_t=select_t
         self.bank_size = bank_size
         self.fitness_scores = []
         
@@ -29,7 +29,6 @@ class BeliefSpace:
         self.belief_bank.append(new_belief)
         self.fitness_scores.append(fitness)
 
-
     def _crossover(self, x1, x2, segment_l=5):
         xover_0 = random.randrange(0,len(self.store))
         xover_1 = min(len(self.store),xover_0+segment_l)
@@ -43,9 +42,10 @@ class BeliefSpace:
 
     def update_from_bank(self):
         # Select from belief bank
-        selected = random.randrange(0,self.select_t)
+        selected = random.randrange(0,min(self.select_t,len(self.belief_bank)))
         selected_idx = np.argsort(self.fitness_scores)[::-1][selected]
         selected_belief = self.belief_bank[selected_idx]
+        
         new_belief = self._crossover(self.store, selected_belief, self.nn_xover_segment_l)
         new_belief = self._mutation(new_belief)
         self.store = new_belief

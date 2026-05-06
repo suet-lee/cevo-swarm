@@ -72,6 +72,8 @@ class Swarm:
         # box interaction probabilities
         culture = cfg.get('culture')
         self.no_ap = len(cfg.get('ap'))
+        high_nov = cfg.get('high_novelty')
+        low_nov = cfg.get('low_novelty')
         # self.no_box_t = len(cfg.get('box_type_ratio')) #TODO remove unused
 
         # Behavioural parameters : used in their behaviour
@@ -79,8 +81,9 @@ class Swarm:
         self.D_m = np.array([]) # dropoff probability parameter
         self.SC = np.array([]) # amplification factor threshold for stone count
         self.r0 = np.array([]) # wall template radius from aggregation point (i.e. nest site)
+        self.novelty_seeking = np.array([]) # Used for evaluation function for novelty
 
-        for subc in culture:
+        for idx, subc in enumerate(culture):
             no_agents = math.floor(self.number_of_agents*subc['ratio'])
             # probably a better way to unpack variables by list.pop() or next()
             P_m_vec = []
@@ -102,6 +105,28 @@ class Swarm:
             self.D_m = np.concatenate((self.D_m,D_m))
             self.SC = np.concatenate((self.SC,SC))
             self.r0 = np.concatenate((self.r0,r0))
+
+            remaining = no_agents
+            # Add high novelty agents
+            try:
+                nov_count = int(high_nov[idx]*no_agents)
+                nov_count = min(nov_count, remaining)
+                self.novelty_seeking = np.append(self.novelty_seeking, [1]*nov_count)
+                remaining -= nov_count
+            except:
+                pass
+
+            # Add low novelty agents
+            try:
+                nov_count = int(low_nov[idx]*no_agents)
+                nov_count = min(nov_count, remaining)
+                self.novelty_seeking = np.append(self.novelty_seeking, [0]*nov_count)
+                remaining -= nov_count
+            except:
+                pass
+
+            # Fill in the rest for the members of subculture
+            self.novelty_seeking = np.append(self.novelty_seeking, [0.5]*remaining)
         
         # fixed parameters: in future these could also be evolved in the belief space
         self.G_max = 0.55
@@ -126,13 +151,15 @@ class Swarm:
         self.bank_size = cfg.get('bank_size')
         self.nn_layers = cfg.get('nn_layers')
         self.tolerance = cfg.get('tolerance')
+        self.fit_select_t = cfg.get('fit_select_t')
 
         # init belief spaces
         for subc in culture:
             no_agents = math.floor(self.number_of_agents*subc['ratio'])
             belief = self._fetch_weights(subc['belief'])
             for i in range(self.number_of_agents):
-                self.BS[i] = BeliefSpace(bank_size=culture) #TODO add xover_rate and mutation_rate
+                self.BS[i] = BeliefSpace(bank_size=self.bank_size, 
+                                         select_t=self.fit_select_t) #TODO add xover_rate and mutation_rate
                 self.BS[i].init_nn_model(self.nn_layers[0], 
                                         self.nn_layers[-1], 
                                         self.nn_layers[1:-1],

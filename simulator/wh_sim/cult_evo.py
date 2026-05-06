@@ -32,7 +32,6 @@ class CA(Warehouse):
         self.phase_change_rate = 10 #phase_change_rate
         # self.verbose = True
         self.no_agents = swarm.number_of_agents
-    
 
     # def update_hook(self):
         #
@@ -104,11 +103,12 @@ class CA(Warehouse):
         self.swarm.counter = self.counter
 
     def _compute_fitness(self, id):
-        return
-        # if prefers novelty:
-        #     return self.swarm.novelty_env[id]
-        # else:
-        #     return 1-self.swarm.novelty_env[id]
+        # Evaluates absolute difference between computed novelty and preferred novelty
+        # Evaluation function: y= 1-|x_pref - x_obs|
+        # E.g. x_pref=0.5, x_obs=1.0, y=0.5
+        # E.g. x_pref=1.0, x_obs=1.0, y=1.0
+        # E.g. x_pref=0.0, x_obs=1.0, y=0.0
+        return 1 - abs(self.swarm.novelty_env[id]-self.swarm.novelty_seeking[id])
 
     def _compute_agent_difference(self, id1, id2):
         return abs(self.swarm.novelty_env[id1]-self.swarm.novelty_env[id2])
@@ -137,6 +137,7 @@ class CA(Warehouse):
 
             fit1 = self._compute_fitness(id1)
             fit2 = self._compute_fitness(id2)
+            
             BS1 = self.swarm.BS[id1]
             BS2 = self.swarm.BS[id2]
 

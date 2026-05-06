@@ -1,5 +1,7 @@
+import os
 import numpy as np
 import math
+import ast
 from scipy.spatial.distance import cdist
 import random
 from collections import deque
@@ -58,6 +60,14 @@ class Swarm:
         self.computed_heading = self.heading # this is computed heading after force calculations are completed
         self.computed_heading_prev = {} # stores previous computed heading
 
+    def _fetch_weights(self, weights_fn):
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        with open(dir_path+"/models/"+weights_fn, "r") as f:
+            line = f.readlines()[0]
+            weights = ast.literal_eval(line)
+
+        return weights
+
     def init_params(self,cfg):
         # box interaction probabilities
         culture = cfg.get('culture')
@@ -79,10 +89,10 @@ class Swarm:
             r0_vec = []
 
             for it in range(self.no_ap):
-                P_m_vec.append(subc['params0'][2*it])
-                D_m_vec.append(subc['params0'][2*it+1])
-                SC_vec.append(subc['params0'][2*it+2])
-                r0_vec.append(subc['params0'][2*it+3])
+                P_m_vec.append(subc['params0'][4*it])
+                D_m_vec.append(subc['params0'][4*it+1])
+                SC_vec.append(subc['params0'][4*it+2])
+                r0_vec.append(subc['params0'][4*it+3])
             
             P_m = np.tile(P_m_vec,(1,no_agents)).flatten()
             D_m = np.tile(D_m_vec,(1,no_agents)).flatten()
@@ -92,7 +102,7 @@ class Swarm:
             self.D_m = np.concatenate((self.D_m,D_m))
             self.SC = np.concatenate((self.SC,SC))
             self.r0 = np.concatenate((self.r0,r0))
-
+        
         # fixed parameters: in future these could also be evolved in the belief space
         self.G_max = 0.55
         self.G_min = 0.01
@@ -120,12 +130,13 @@ class Swarm:
         # init belief spaces
         for subc in culture:
             no_agents = math.floor(self.number_of_agents*subc['ratio'])
+            belief = self._fetch_weights(subc['belief'])
             for i in range(self.number_of_agents):
                 self.BS[i] = BeliefSpace(bank_size=culture) #TODO add xover_rate and mutation_rate
                 self.BS[i].init_nn_model(self.nn_layers[0], 
                                         self.nn_layers[-1], 
                                         self.nn_layers[1:-1],
-                                        subc['belief'])
+                                        belief)
         
     # @TODO allow for multiple behaviours, heterogeneous swarm
     def iterate(self, *args, **kwargs):
@@ -218,7 +229,6 @@ class Swarm:
             # check pickup probability for closest ap
             d_ap = cdist(warehouse.ap, warehouse.box_c[box_id])
             closest_ap = np.argmin(d_ap,0)
-
             d = np.min(d_ap,0)
             
             # if points out of range, probability of pickup is fixed at base rate
@@ -231,7 +241,7 @@ class Swarm:
                 r0 = self.r0[idx]*min(warehouse.width,warehouse.height)
                 p = self.P_m[idx]*( 1 - 1/(1+self.tau*(d_-r0)*(d_-r0)) ).flatten()
                 p = self._G(p, closest_r, SC)
-            
+                
             pickup = np.random.binomial(1,p)
             if pickup and warehouse.swarm.set_agent_box_state(closest_r, 1):
                 warehouse.box_is_free[box_id] = 0 # change box state to 0 (not free, on a robot)
@@ -266,7 +276,7 @@ class Swarm:
         r0 = self.r0[idx]*min(warehouse.width,warehouse.height)
         p = self.D_m[idx]/(1+self.tau*(d2-r0)*(d2-r0))
         p = self._F(p,rob_id,SC)
-        
+
         # if aggregation points are out of range, probability of dropoff is fixed at base rate
         in_range = (d1 <= self.camera_sensor_range_V[rob_id])
         p = p*in_range + self.base_dropoff_p*(1-in_range)

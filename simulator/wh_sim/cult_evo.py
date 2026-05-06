@@ -103,7 +103,14 @@ class CA(Warehouse):
         self.counter += 1
         self.swarm.counter = self.counter
 
-    def compute_agent_difference(self, id1, id2):
+    def _compute_fitness(self, id):
+        return
+        # if prefers novelty:
+        #     return self.swarm.novelty_env[id]
+        # else:
+        #     return 1-self.swarm.novelty_env[id]
+
+    def _compute_agent_difference(self, id1, id2):
         return abs(self.swarm.novelty_env[id1]-self.swarm.novelty_env[id2])
 
     def socialize(self, agent_ids):
@@ -126,10 +133,10 @@ class CA(Warehouse):
             
             used.update([id1, id2])
             self.social_transmission_log.append([id1, id2])
-            ag_diff = self.compute_agent_difference(id1, id2)
+            ag_diff = self._compute_agent_difference(id1, id2)
 
-            fit1 = self.swarm.novelty_env[id1]
-            fit2 = self.swarm.novelty_env[id2]
+            fit1 = self._compute_fitness(id1)
+            fit2 = self._compute_fitness(id2)
             BS1 = self.swarm.BS[id1]
             BS2 = self.swarm.BS[id2]
 

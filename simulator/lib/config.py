@@ -63,7 +63,7 @@ class Config(dict):
 
     def get(self, *args):
         key = args[0]
-        cfg = self.get_key(key)      
+        cfg = self.get_key(key)
         for arg in args[1:]:
             try:
                 cfg = cfg[arg]
@@ -71,4 +71,7 @@ class Config(dict):
                 raise Exception('Config key not valid')
                 # return cfg
         return cfg
+    
+    def get_attributes(self):
+        return self.__dict__
 

@@ -235,9 +235,7 @@ class Swarm:
 
         return np.minimum(p_,np.ones(len(p)))
 
-    def pickup_box(self, warehouse, robots=None):
-        if robots is None:
-            robots = list(range(warehouse.number_of_agents))
+    def pickup_box(self, warehouse):
 
         dist_rob_to_box = cdist(warehouse.box_c, warehouse.rob_c) # calculates the euclidean distance from every robot to every box (centres)
         is_closest_rob_in_range = np.min(dist_rob_to_box, 1) < warehouse.box_range # if the minimum distance box-robot is less than the pick up sensory range, then qu_close_box = 1
@@ -247,10 +245,7 @@ class Swarm:
         
 		# needs to be a loop (rather than vectorised) in case two robots are close to the same box
         for box_id in to_pickup:
-            closest_r = closest_rob_id[box_id][0]
-            if closest_r not in robots:
-                continue
-            
+            closest_r = closest_rob_id[box_id][0]            
             is_robot_carrying_box = warehouse.is_robot_carrying_box(closest_r)
             # Check if robot is already carrying a box
             if is_robot_carrying_box == 1:
@@ -273,15 +268,14 @@ class Swarm:
                 p = self._G(p, closest_r, SC)
                 
             pickup = np.random.binomial(1,p)
-            if pickup and warehouse.swarm.set_agent_box_state(closest_r, 1):
+            if pickup and self.set_agent_box_state(closest_r, 1):
                 warehouse.box_is_free[box_id] = 0 # change box state to 0 (not free, on a robot)
                 warehouse.box_c[box_id] = warehouse.rob_c[closest_r] # change the box centre so it is aligned with its robot carrier's centre
                 warehouse.robot_carrier[box_id] = closest_r # set the robot_carrier for box b to that robot ID
                 self.agent_box_id[closest_r] = box_id # set box id
 
-    def dropoff_box(self, warehouse, robots=None):
-        if robots is None:
-            robots = list(range(warehouse.number_of_agents))
+    def dropoff_box(self, warehouse):
+        robots = list(range(self.number_of_agents))
 
         # first get the robots who are carrying boxes AND in the robots array
         rob_id = np.intersect1d(np.argwhere(self.agent_has_box == 1),robots)
@@ -431,9 +425,9 @@ class Swarm:
         #     self.box_t_in_range[idx] = sum(np.unique(it))
         
         # Evaluate context
-        self.compute_novelty_environment(warehouse)
+        # self.compute_local_env_novelty()
 
-    def compute_novelty_environment(self,warehouse):
+    def compute_local_env_novelty(self):
         time_idx = self.counter%self.mem_size # compute env perception and store in idx
         # env perception is a function of number of boxes and types of boxes (to simplify things)
         self.box_in_range_mem[:,time_idx] = self.box_in_range

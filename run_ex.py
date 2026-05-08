@@ -28,12 +28,11 @@ st = SaveTo()
 sim = Simulator(cfg_obj,verbose=verbose,random_seed=seed)
 sim.run()
 if export_data:    
-    # for key in ["P_m", "D_m", "SC", "r0", "r_phase"]:
+    # for key in ["P_m", "D_m", "SC", "r0"]:
     #     data = sim.CA_data[key]
     #     st.export_data(ex_id, data, key, transpose=True)
     
-    # # @TODO remove self_updates variable ? -- data already logged in r_phase
-    # for key in ["social_transmission_log","self_updates_log"]:
+    # for key in ["social_transmission_log":
     #     data = sim.CA_data[key]
     #     records = [{"timestep": i, key: v} for i, v in data.items()]
     #     st.export_data(ex_id, records, key)

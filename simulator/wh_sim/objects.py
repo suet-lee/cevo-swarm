@@ -66,6 +66,9 @@ class Swarm:
             line = f.readlines()[0]
             weights = ast.literal_eval(line)
 
+        print(type(weights))
+        print(len(weights))
+
         return weights
 
     def init_params(self,cfg):

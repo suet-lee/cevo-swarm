@@ -39,9 +39,9 @@ class CA(Warehouse):
         #
 
     # TODO avoid repetition from warehouse class
-    def execute_pickup_dropoff(self, robots):
-        self.swarm.pickup_box(self, robots)
-        drop = self.swarm.dropoff_box(self, robots)
+    def execute_pickup_dropoff(self):
+        self.swarm.pickup_box(self)
+        drop = self.swarm.dropoff_box(self)
 		
         if len(drop):
             # rob_n = self.robot_carrier[drop] # robot IDs to drop boxes

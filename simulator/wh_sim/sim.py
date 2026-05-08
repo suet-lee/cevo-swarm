@@ -45,8 +45,8 @@ class Simulator:
             self.cfg.get('warehouse', 'box_radius'), 
             self.swarm,
             self.cfg.get('warehouse', 'object_position'),
-            self.cfg.get('phase_ratio'),
-            self.cfg.get('phase_change_rate'),
+            self.cfg.get('update_rate'),
+            self.cfg.get('evaluate_rate'),
             self.cfg.get('influence_r'))    
         
         self.warehouse.generate_ap(self.cfg)
@@ -133,17 +133,10 @@ class Simulator:
             self.CA_data['r0'] = {}
         if 'social_transmission_log' not in self.CA_data:
             self.CA_data['social_transmission_log'] = {}
-        if 'self_updates_log' not in self.CA_data:
-            self.CA_data['self_updates_log'] = {}
-        if 'r_phase' not in self.CA_data:
-            self.CA_data['r_phase'] = {}
         
         self.CA_data['P_m'][self.warehouse.counter] = self.swarm.P_m.tolist()
         self.CA_data['D_m'][self.warehouse.counter] = self.swarm.D_m.tolist()
         self.CA_data['SC'][self.warehouse.counter] = self.swarm.SC.tolist()
         self.CA_data['r0'][self.warehouse.counter] = self.swarm.r0.tolist()
         self.CA_data['social_transmission_log'][self.warehouse.counter] = self.warehouse.social_transmission_log
-        self.CA_data['self_updates_log'][self.warehouse.counter] = self.warehouse.self_updates_log.tolist()
-        self.CA_data['r_phase'][self.warehouse.counter] = self.warehouse.r_phase.tolist()
-
-
+       

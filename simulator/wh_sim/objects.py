@@ -428,9 +428,9 @@ class Swarm:
         #     self.box_t_in_range[idx] = sum(np.unique(it))
         
         # Evaluate context
-        self.compute_novelty_environment(warehouse)
+        # self.compute_local_env_novelty()
 
-    def compute_novelty_environment(self,warehouse):
+    def compute_local_env_novelty(self):
         time_idx = self.counter%self.mem_size # compute env perception and store in idx
         # env perception is a function of number of boxes and types of boxes (to simplify things)
         self.box_in_range_mem[:,time_idx] = self.box_in_range

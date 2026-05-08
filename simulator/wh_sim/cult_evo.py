@@ -20,39 +20,23 @@ class CA(Warehouse):
 
     def __init__(self, width, height, number_of_boxes, box_radius, swarm,
 		init_object_positions=Warehouse.RANDOM_OBJ_POS, 
-        phase_ratio=[0.3,0.3,0.4], phase_change_rate=10, influence_r=100):
+        update_rate=50, evaluate_rate=50,
+        influence_r=100):
         super().__init__(width, height, number_of_boxes, box_radius, swarm,
 		    init_object_positions=init_object_positions)
         
         self.influence_r = influence_r
-        self.phase_ratio = phase_ratio
+        self.update_rate = update_rate
+        self.evaluate_rate = evaluate_rate
+        self.global_state_prev = None
+        self.global_env_novelty = 0
+
         self.social_transmission_log =[]
-        self.updates_log = []
-        self.r_phase = np.array([])
-        self.phase_change_rate = 10 #phase_change_rate
         # self.verbose = True
         self.no_agents = swarm.number_of_agents
 
     # def update_hook(self):
         #
-
-    def select_phase(self):
-        if self.counter % self.phase_change_rate == 0:
-            # Define probabilities for each phase (ensure they sum to 1)
-            probabilities = self.phase_ratio  # % chance for phase 1, % for phase 2, % for phase 3
-            
-            # Generate phase array based on probabilities
-            phase = np.random.choice([self.PHASE_SOCIAL_LEARNING, self.PHASE_UPDATE_BEHAVIOUR, self.PHASE_EXECUTE_BEHAVIOUR],
-                                    size=self.no_agents,
-                                    p=probabilities)
-            self.r_phase = phase
-        else:
-            phase = self.r_phase
-        
-        s = np.argwhere(phase==self.PHASE_SOCIAL_LEARNING).flatten()
-        u = np.argwhere(phase==self.PHASE_UPDATE_BEHAVIOUR).flatten()
-        e = np.argwhere(phase==self.PHASE_EXECUTE_BEHAVIOUR).flatten()
-        return s,u,e
 
     # TODO avoid repetition from warehouse class
     def execute_pickup_dropoff(self, robots):
@@ -94,44 +78,57 @@ class CA(Warehouse):
         self.box_c = self.box_c + self.box_d
 		
         self.swarm.compute_metrics(self)
-        s,u,e = self.select_phase()   
-        self.socialize(s)
-        self.update(u)
-        self.execute_pickup_dropoff(e)
+        
+        # Update from BS for all robots
+        if self.counter % self.update_rate == 0:
+            self.update()
+
+        # Evaluate state of the world
+        if self.counter % self.evaluate_rate == 0:
+            self.evaluate() # Update evaluated state of the world
+            self.global_state_prev = self.box_c
+        
+        self.socialize()
+        self.execute_pickup_dropoff()
 
         self.counter += 1
         self.swarm.counter = self.counter
 
+    #TODO finish
+    def compute_global_env_novelty(self):
+        if self.global_state_prev is None:
+            return 1
+        
+        # compare: self.global_state_prev to self.box_c (the new global state)
+        return 1
+
+    # Evaluate the novelty in the global state
+    def evaluate(self):
+        self.global_env_novelty = self.compute_global_env_novelty()
+        # self.swarm.compute_local_env_novelty() #TODO can be combined
+
+
+    #TODO evaluate wrt global state + in phase only
     def _compute_fitness(self, id):
         # Evaluates absolute difference between computed novelty and preferred novelty
         # Evaluation function: y= 1-|x_pref - x_obs|
         # E.g. x_pref=0.5, x_obs=1.0, y=0.5
         # E.g. x_pref=1.0, x_obs=1.0, y=1.0
         # E.g. x_pref=0.0, x_obs=1.0, y=0.0
-        return 1 - abs(self.swarm.novelty_env[id]-self.swarm.novelty_seeking[id])
+        return 1 - abs(self.global_env_novelty-self.swarm.novelty_seeking[id])
+        # return 1 - abs(self.swarm.novelty_env[id]-self.swarm.novelty_seeking[id]) # local novelty
 
     def _compute_agent_difference(self, id1, id2):
         return abs(self.swarm.novelty_env[id1]-self.swarm.novelty_env[id2])
 
-    def socialize(self, agent_ids):
-        used = set()
-        noise_strength = 0.01  # Adjust based on your scale
-        self.social_transmission_log = []
-        random.shuffle(agent_ids)
+    def socialize(self):
+        self.social_transmission_log = []        
+        ag_in_range = self.swarm.agent_dist < self.swarm.camera_sensor_range_V[0]
 
-        for id1, id2 in combinations(agent_ids, 2):
-            if id1 in used or id2 in used:
+        for id1, id2 in combinations(range(self.no_agents), 2):
+            if not ag_in_range[id1][id2]:
                 continue
-
-            dist = self.swarm.agent_dist[id1][id2]
-            if dist >= self.influence_r:
-                continue
-
-            # if self.verbose:
-            #     print(
-            #         f"Agents {influencer} (more influential) & {influencee} interacting — influence_prob: {influence_prob:.2f}, dist: {dist:.2f}")
             
-            used.update([id1, id2])
             self.social_transmission_log.append([id1, id2])
             ag_diff = self._compute_agent_difference(id1, id2)
 
@@ -160,13 +157,10 @@ class CA(Warehouse):
         ]
 
     # TODO asynchronous evo ?
-    # This is called after the main step function (step forward in swarm behaviour)
-    def update(self, agent_ids):
-
-        self.self_updates_log = agent_ids
+    def update(self):
         # noise_strength = 0.01  # Small amount of stochasticity #TODO remove redundancy
 
-        for id in agent_ids:
+        for id in range(self.no_agents):
             # Generate parameters from BS (norm interpretation)
             metrics = self._gen_input_metrics(id)
             new_params = self.swarm.BS[id].generate_norm(metrics)

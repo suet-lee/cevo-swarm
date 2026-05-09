@@ -6,8 +6,8 @@ e_1:
   bank_size: 5
   nn_layers: [5,7,10,8] # input size is no. input metrics, output size should be 4*no_ap
   tolerance: 0.3
-  update_rate: 50
-  evaluate_rate: 50
+  update_rate: 250000
+  evaluate_rate: 250000
   high_novelty: [0,0] # proportion of robots seeking high novelty, corresponding to each culture
   low_novelty: [1.0,1.0]
   fit_select_t: 1 # Number of top fitness candidates to consider in selection

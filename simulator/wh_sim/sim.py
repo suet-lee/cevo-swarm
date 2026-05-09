@@ -58,6 +58,7 @@ class Simulator:
     def _init_log(self):
         self.data = {}
         self.CA_data = {}
+        self.training_data = []
         steps = int(self.cfg.get('time_limit')/self.export_steps)
         self.export_ts = list(range(steps, self.cfg.get('time_limit')+1, steps))
 
@@ -109,6 +110,7 @@ class Simulator:
               self.log_CA_data()
               if self.warehouse.counter in self.export_ts:
                 self.log_data()
+                self.log_training_data()
         
         if self.verbose:
             print("\n")
@@ -139,4 +141,48 @@ class Simulator:
         self.CA_data['SC'][self.warehouse.counter] = self.swarm.SC.tolist()
         self.CA_data['r0'][self.warehouse.counter] = self.swarm.r0.tolist()
         self.CA_data['social_transmission_log'][self.warehouse.counter] = self.warehouse.social_transmission_log
+
+    def log_training_data(self):
+
+        step = self.warehouse.counter
+
+        for id in range(self.warehouse.no_agents):
+            # ===== INPUT (5 metrics) =====
+            metrics = self.warehouse._gen_input_metrics(id)
+
+            # ===== OUTPUT (8 values) =====
+            start = id * 2
+            end = start + 2
+
+            output = np.concatenate([
+                self.swarm.P_m[start:end],
+                self.swarm.D_m[start:end],
+                self.swarm.SC[start:end],
+                self.swarm.r0[start:end]
+            ]).tolist()
+
+            sample = {
+                "step": step,
+                "agent_id": id,
+                "input": list(metrics),
+                "output": output
+            }
+
+            self.training_data.append(sample)
+
+    def save_training_data(self, filename="training_data.json"):
+
+        def convert_numpy(obj):
+            if isinstance(obj, np.integer):
+                return int(obj)
+            if isinstance(obj, np.floating):
+                return float(obj)
+            if isinstance(obj, np.ndarray):
+                return obj.tolist()
+            raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+
+        with open(filename, "w") as f:
+            json.dump(self.training_data, f, indent=2, default=convert_numpy)
+
+        print(f"Training data saved to {filename}")
        

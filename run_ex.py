@@ -32,10 +32,8 @@ if export_data:
     #     data = sim.CA_data[key]
     #     st.export_data(ex_id, data, key, transpose=True)
     
-    # for key in ["social_transmission_log":
-    #     data = sim.CA_data[key]
-    #     records = [{"timestep": i, key: v} for i, v in data.items()]
-    #     st.export_data(ex_id, records, key)
+    data = sim.warehouse.novelty_log
+    st.export_data(ex_id, data, "novelty")
 
     dn = st.export_data(ex_id,sim.data['box_c'], "boxes")
     st.export_data(ex_id,sim.data['rob_c'], "robots")

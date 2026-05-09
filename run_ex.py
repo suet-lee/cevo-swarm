@@ -27,7 +27,7 @@ seed = np.random.randint(0,10000000)
 st = SaveTo()
 sim = Simulator(cfg_obj,verbose=verbose,random_seed=seed)
 sim.run()
-sim.save_training_data()
+#sim.save_training_data()
 if export_data:    
     # for key in ["P_m", "D_m", "SC", "r0"]:
     #     data = sim.CA_data[key]

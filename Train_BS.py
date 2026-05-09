@@ -1,4 +1,5 @@
 from simulator.wh_sim import *
+import os
 
 model = nnModel(
     input_size=5,
@@ -6,14 +7,18 @@ model = nnModel(
     output_size=8
 )
 
-training_data = model.load_training_data("training_data.json")
+training_data = nnModel.load_training_data(
+    "training_data.json"
+)
 
-
-model.train(
+model.train_model(
     training_data,
     epochs=200,
     learning_rate=0.01
 )
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
-model.save_weights(dir_path+"/simulator/wh_sim/models/weights0.txt")
+
+model.save_weights_txt(
+    dir_path + "/simulator/wh_sim/models/weights0.txt"
+)

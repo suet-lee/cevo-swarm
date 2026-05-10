@@ -8,7 +8,7 @@ model = nnModel(
 )
 
 training_data = nnModel.load_training_data(
-    "training_data.json"
+    "training_data_2.json"
 )
 
 model.train_model(
@@ -20,5 +20,5 @@ model.train_model(
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
 model.save_weights_txt(
-    dir_path + "/simulator/wh_sim/models/weights0.txt"
+    dir_path + "/simulator/wh_sim/models/weights2.txt"
 )

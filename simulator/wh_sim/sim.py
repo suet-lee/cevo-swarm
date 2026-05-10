@@ -54,7 +54,7 @@ class Simulator:
         self.export_data = self.cfg.get('export_data')
         self.export_steps = self.cfg.get('export_steps')
         self.export_training_data = False
-        
+
         self._init_log()
 
     def _init_log(self):
@@ -173,8 +173,7 @@ class Simulator:
 
             self.training_data.append(sample)
 
-    #TODO move to save_to class
-    def save_training_data(self, filename="training_data.json"):
+    def save_training_data(self, filename="training_data_2.json"):
 
         def convert_numpy(obj):
             if isinstance(obj, np.integer):

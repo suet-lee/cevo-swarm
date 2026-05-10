@@ -8,7 +8,7 @@ import numpy as np
 
 ex_id = 'e_0'
 verbose = False
-export_data = True
+export_data = False #True
 
 ###### Config class ######
 
@@ -17,8 +17,6 @@ cfg_file = CFG_FILES['ex_0']
 cfg_obj = Config(cfg_file, default_cfg_file, ex_id=ex_id)
 
 ###### Functions ######
-
-
 
 ###### Run experiment ######
 

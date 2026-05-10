@@ -3,6 +3,7 @@ import sys
 import random
 from itertools import combinations
 from scipy.spatial.distance import cdist
+from skimage.metrics import structural_similarity as ssim
 
 dir_root = Path(__file__).resolve().parents[1]
 
@@ -24,7 +25,7 @@ class CA(Warehouse):
         self.influence_r = influence_r
         self.update_rate = update_rate
         self.evaluate_rate = evaluate_rate
-        self.global_state_prev = None
+        self.global_state_prev = self._convert_to_pixel_grid(self.box_c)
         self.global_env_novelty = 0
         self.novelty_log = []
 
@@ -119,7 +120,8 @@ class CA(Warehouse):
         
         return grid
 
-    def compute_global_env_novelty(self):
+    #TODO old implementation - remove or improve
+    def compute_global_env_novelty0(self):
         if self.global_state_prev is None:
             self.global_state_prev = {'ap_m':[0]*len(self.ap), 'ap_var':[0]*len(self.ap)}
             return 1
@@ -163,11 +165,28 @@ class CA(Warehouse):
         
         scalef = 10
         return min(novelty*scalef,1)
+        
+    def _convert_to_pixel_grid(self, box_c):
+        img = np.zeros([500,500])
+        for i in box_c:
+            idx0 = int(np.floor(i[0]))
+            idx1 = int(np.floor(i[1]))
+            for x in range(idx0-5,idx0+5):
+                for y in range(idx1-5,idx1+5):
+                    img[x,y] = 1    
+        return img.astype(int)
+
+    def compute_global_env_novelty(self):        
+        # Compute structural similarity
+        new_gs = self._convert_to_pixel_grid(self.box_c)
+        score, diff = ssim(self.global_state_prev, new_gs, full=True, data_range=1.0)
+        # score of 1 means exactly the same
+        return 1-score
 
     # Evaluate the novelty in the world
     def evaluate(self):
         self.global_env_novelty = self.compute_global_env_novelty()
-        self.novelty_log.append([self.global_env_novelty]+self.global_state_prev['ap_m']+self.global_state_prev['ap_var'])
+        self.novelty_log.append(self.global_env_novelty)
         # self.swarm.compute_local_env_novelty() #TODO can be combined
 
     #TODO evaluate wrt global state + in phase only

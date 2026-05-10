@@ -14,10 +14,6 @@ from . import Warehouse
 # Implements swarm with cultural evolution
 class CA(Warehouse):
 
-    PHASE_SOCIAL_LEARNING = 0
-    PHASE_UPDATE_BEHAVIOUR = 1
-    PHASE_EXECUTE_BEHAVIOUR = 2
-
     def __init__(self, width, height, number_of_boxes, box_radius, swarm,
 		init_object_positions=Warehouse.RANDOM_OBJ_POS, 
         update_rate=50, evaluate_rate=50,
@@ -30,6 +26,7 @@ class CA(Warehouse):
         self.evaluate_rate = evaluate_rate
         self.global_state_prev = None
         self.global_env_novelty = 0
+        self.novelty_log = []
 
         self.social_transmission_log =[]
         # self.verbose = True
@@ -86,27 +83,92 @@ class CA(Warehouse):
         # Evaluate state of the world
         if self.counter % self.evaluate_rate == 0:
             self.evaluate() # Update evaluated state of the world
-            self.global_state_prev = self.box_c
         
-        self.socialize()
+        # Socialize and execute happen every iteration
+        # self.socialize()
         self.execute_pickup_dropoff()
 
         self.counter += 1
         self.swarm.counter = self.counter
 
-    #TODO finish
+    def _compute_ring_metrics(self, ap, max_r, box_c):
+        # Distance from ap
+        dist_from_ap = cdist([ap],box_c)
+        ap_box_idx = np.argwhere(dist_from_ap.flatten() < max_r).flatten()
+        
+        # Mean distance from ap
+        ap_m = np.mean(dist_from_ap.flatten()[ap_box_idx])
+        
+        # Var: dist from ap - ap_m
+        dists = (dist_from_ap.flatten() - ap_m)[ap_box_idx]
+        
+        # normalise
+        dists_n = dists/(dists.max()-dists.min())
+        ap_var = np.var(dists_n)
+
+        return ap_m, ap_var 
+
+    #TODO unused
+    def _compute_box_distribution(self, res, box_c):
+        no_cells = int(self.width/res)
+        grid = np.zeros([no_cells,no_cells])
+        for c in box_c:
+            idx0 = int(np.floor(c[0]/res))
+            idx1 = int(np.floor(c[1]/res))
+            grid[idx0,idx1] += 1
+        
+        return grid
+
     def compute_global_env_novelty(self):
         if self.global_state_prev is None:
+            self.global_state_prev = {'ap_m':[0]*len(self.ap), 'ap_var':[0]*len(self.ap)}
             return 1
         
-        # compare: self.global_state_prev to self.box_c (the new global state)
-        return 1
+        if len(self.ap) == 1:
+            # empirical values for scaling
+            max_diff_var = 0.1 # 0.07
 
-    # Evaluate the novelty in the global state
+            ap = self.ap[0]
+            max_r = min( abs(self.width-ap[0]), ap[0], abs(self.height-ap[1]), ap[1] )
+            ap_m, ap_var = self._compute_ring_metrics(ap, max_r, self.box_c)
+            old_ap_m = self.global_state_prev['ap_m'][0]
+            old_ap_var = self.global_state_prev['ap_var'][0]
+            novelty = 0.5*abs(ap_m-old_ap_m)/max_r + 0.5*min(abs(ap_var-old_ap_var)/max_diff_var,1)
+            self.global_state_prev = {'ap_m':[ap_m], 'ap_var':[ap_var]} # novelty in mean ring radius, and ring variance
+        else:
+            max_diff_var = 0.1
+
+            # Assume two AP - find distance between them
+            # Half the distance is the assumed maximum radius for any ring
+            dist = np.linalg.norm(self.ap[0]-self.ap[1])
+            max_r = dist/2
+            ap_m0, ap_var0 = self._compute_ring_metrics(self.ap[0], max_r, self.box_c)
+            ap_m1, ap_var1 = self._compute_ring_metrics(self.ap[1], max_r, self.box_c)
+            
+            old_ap_m0 = self.global_state_prev['ap_m'][0]
+            old_ap_var0 = self.global_state_prev['ap_var'][0]
+            old_ap_m1 = self.global_state_prev['ap_m'][1]
+            old_ap_var1 = self.global_state_prev['ap_var'][1]
+            novelty = 0.25*abs(ap_m0-old_ap_m0)/max_r + 0.25*abs(ap_var0-old_ap_var0)/max_diff_var \
+                + 0.25*abs(ap_m1-old_ap_m1)/max_r + 0.25*abs(ap_var1-old_ap_var1)/max_diff_var
+            
+            # print(0.25*abs(ap_m0-old_ap_m0)/max_r, 0.25*abs(ap_m1-old_ap_m1)/max_r)
+            # print(0.25*abs(ap_var0-old_ap_var0)/max_diff_var, 0.25*abs(ap_var1-old_ap_var1)/max_diff_var)
+
+            self.global_state_prev = {'ap_m':[ap_m0,ap_m1], 'ap_var':[ap_var0,ap_var1]}
+
+        #TODO not used
+        # Box distribution by grid - count number of boxes in each cell
+        # res = 25
+        
+        scalef = 10
+        return min(novelty*scalef,1)
+
+    # Evaluate the novelty in the world
     def evaluate(self):
         self.global_env_novelty = self.compute_global_env_novelty()
+        self.novelty_log.append([self.global_env_novelty]+self.global_state_prev['ap_m']+self.global_state_prev['ap_var'])
         # self.swarm.compute_local_env_novelty() #TODO can be combined
-
 
     #TODO evaluate wrt global state + in phase only
     def _compute_fitness(self, id):

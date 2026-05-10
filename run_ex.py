@@ -6,14 +6,14 @@ import numpy as np
 
 ###### Experiment parameters ######
 
-ex_id = 'e_1'
+ex_id = 'e_0'
 verbose = False
 export_data = True
 
 ###### Config class ######
 
 default_cfg_file = CFG_FILES['default']
-cfg_file = CFG_FILES['ex_1']
+cfg_file = CFG_FILES['ex_0']
 cfg_obj = Config(cfg_file, default_cfg_file, ex_id=ex_id)
 
 ###### Functions ######

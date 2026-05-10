@@ -6,7 +6,7 @@ path     = os.path.dirname(os.path.abspath(filename))
 CFG_FILES = {
     'default': os.path.join(path, 'cfg', 'default.yaml'),
     'custom': os.path.join(path, 'cfg', 'custom.yaml'),
-    'test': os.path.join(path, 'cfg', 'test.yaml'),
+    'ex_0': os.path.join(path, 'cfg', 'ex_0.yaml'),
     'ex_1': os.path.join(path, 'cfg', 'ex_1.yaml'),
     'ex_2': os.path.join(path, 'cfg', 'ex_2.yaml')
 }

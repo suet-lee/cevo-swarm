@@ -1,13 +1,13 @@
 #### Experiments
 
-e_1:
-  data_dir: "one_culture"
-  description: "2 AP, 1 culture"
+e_0:
+  data_dir: "e_0"
+  description: "Testing"
   bank_size: 5
   nn_layers: [5,7,10,8] # input size is no. input metrics, output size should be 4*no_ap
   tolerance: 0.3
-  update_rate: 5000000000
-  evaluate_rate: 10000
+  update_rate: 25000000
+  evaluate_rate: 25000000
   high_novelty: [0,0] # proportion of robots seeking high novelty, corresponding to each culture
   low_novelty: [1.0,1.0]
   fit_select_t: 1 # Number of top fitness candidates to consider in selection
@@ -15,11 +15,9 @@ e_1:
     - [0.25,0.25]
     - [0.75,0.75]
   culture:
-    - ratio: 0.0 # Prefer one AP 1 to another + close to the nest
-      params0: [0.35,0.5,0.03,0.10, 0.35,0.0,0.03,0.10] # parameters for initialisation
+    - ratio: 1.0
+      params0: [0.35,0.5,0.03,0.15,  0.35,0.5,0.03,0.15] # parameters for initialisation
       # order: Pm, D_m, SC, r0
       belief: "weights0.txt" # nn weights: the file should go in simulator/wh_sim/models/
 
   influence_r: 50
-
-

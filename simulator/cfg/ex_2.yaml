@@ -1,6 +1,6 @@
 #### Experiments
 
-e_1:
+e_5:
   data_dir: "one_culture"
   description: "2 AP, 1 culture"
   bank_size: 5
@@ -16,10 +16,16 @@ e_1:
     - [0.75,0.75]
   culture:
     - ratio: 0.0 # Prefer one AP 1 to another + close to the nest
-      params0: [0.35,0.5,0.03,0.10, 0.35,0.0,0.03,0.10] # parameters for initialisation
+      params0: [0.35,0.5,0.03,0.10,0.35,0.0,0.03,0.10] # parameters for initialisation
       # order: Pm, D_m, SC, r0
       belief: "weights0.txt" # nn weights: the file should go in simulator/wh_sim/models/
+    - ratio: 0.0 # Prefers walls close to nests , both AP
+      params0: [0.35,0.5,0.03,0.10,0.35,0.5,0.03,0.10]
+      # order: Pm, D_m, SC, r0
+      belief: "weights1.txt" # nn weights
+    - ratio: 1 # Prefers walls far to nests , both AP
+      params0: [0.35,0.5,0.03,0.20,0.35,0.5,0.03,0.20]
+      # order: Pm, D_m, SC, r0
+      belief: "weights2.txt" # nn weights
 
   influence_r: 50
-
-

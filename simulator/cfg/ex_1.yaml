@@ -43,10 +43,10 @@ e_1:
     - ratio: 0.0 # Prefers walls close to nests , both AP
       params0: [0.35,0.5,0.03,0.10,0.35,0.5,0.03,0.10]
       # order: Pm, D_m, SC, r0
-      belief: "weights0.txt" # nn weights
+      belief: "weights1.txt" # nn weights
     - ratio: 1 # Prefers walls far to nests , both AP
       params0: [0.35,0.5,0.03,0.20,0.35,0.5,0.03,0.20]
       # order: Pm, D_m, SC, r0
-      belief: "weights0.txt" # nn weights
+      belief: "weights2.txt" # nn weights
 
   influence_r: 50

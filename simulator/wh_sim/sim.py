@@ -53,6 +53,8 @@ class Simulator:
         self.warehouse.verbose = self.verbose
         self.export_data = self.cfg.get('export_data')
         self.export_steps = self.cfg.get('export_steps')
+        self.export_training_data = False
+        
         self._init_log()
 
     def _init_log(self):
@@ -107,10 +109,11 @@ class Simulator:
             if self.warehouse.counter%1000 == 0:
                 print("Time elapsed... ",self.warehouse.counter,"\n")
             if self.export_data:
-              self.log_CA_data()
-              if self.warehouse.counter in self.export_ts:
-                self.log_data()
-                self.log_training_data()
+                self.log_CA_data()
+                if self.warehouse.counter in self.export_ts:
+                    self.log_data()
+                if self.export_training_data:
+                    self.log_training_data()
         
         if self.verbose:
             print("\n")
@@ -170,6 +173,7 @@ class Simulator:
 
             self.training_data.append(sample)
 
+    #TODO move to save_to class
     def save_training_data(self, filename="training_data.json"):
 
         def convert_numpy(obj):

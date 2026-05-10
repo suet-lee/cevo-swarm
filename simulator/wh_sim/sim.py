@@ -170,7 +170,7 @@ class Simulator:
 
             self.training_data.append(sample)
 
-    def save_training_data(self, filename="training_data.json"):
+    def save_training_data(self, filename="training_data_2.json"):
 
         def convert_numpy(obj):
             if isinstance(obj, np.integer):

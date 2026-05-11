@@ -28,16 +28,19 @@ sim.run()
 #sim.save_training_data()
 
 if export_data:    
-    # for key in ["P_m", "D_m", "SC", "r0"]:
-    #     data = sim.CA_data[key]
-    #     st.export_data(ex_id, data, key, transpose=True)
+    for key in ["P_m", "D_m", "SC", "r0", "social_transmission_log"]:
+        data = sim.CA_data[key]
+        st.export_data(ex_id, data, key, transpose=True)
     
     data = sim.warehouse.novelty_log
     st.export_data(ex_id, data, "novelty")
 
+    st.export_data(ex_id, sim.belief_bank_log, "belief_bank")
+    st.export_data(ex_id, sim.belief_space_log, "belief_space")
+
     dn = st.export_data(ex_id,sim.data['box_c'], "boxes")
     st.export_data(ex_id,sim.data['rob_c'], "robots")
-    st.export_metadata(dn, cfg_obj.get_attributes())
+    st.export_metadata(dn, cfg_obj.get_attributes()) #TODO dn or ex_id as param
     
 t1 = time.time()
 dt = t1-t0

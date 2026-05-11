@@ -60,6 +60,8 @@ class Simulator:
     def _init_log(self):
         self.data = {}
         self.CA_data = {}
+        self.belief_bank_log = {} # Stores contents of the belief bank
+        self.belief_space_log = {} # Stores contents of the belief space
         self.training_data = []
         steps = int(self.cfg.get('time_limit')/self.export_steps)
         self.export_ts = list(range(steps, self.cfg.get('time_limit')+1, steps))
@@ -110,6 +112,7 @@ class Simulator:
                 print("Time elapsed... ",self.warehouse.counter)
             if self.export_data:
                 self.log_CA_data()
+                self.log_BS_data()
                 if self.warehouse.counter in self.export_ts:
                     self.log_data()
                 if self.export_training_data:
@@ -139,11 +142,24 @@ class Simulator:
         if 'social_transmission_log' not in self.CA_data:
             self.CA_data['social_transmission_log'] = {}
         
-        self.CA_data['P_m'][self.warehouse.counter] = self.swarm.P_m.tolist()
-        self.CA_data['D_m'][self.warehouse.counter] = self.swarm.D_m.tolist()
-        self.CA_data['SC'][self.warehouse.counter] = self.swarm.SC.tolist()
-        self.CA_data['r0'][self.warehouse.counter] = self.swarm.r0.tolist()
+        if self.warehouse.counter%self.cfg.get("update_rate") == 0:
+            self.CA_data['P_m'][self.warehouse.counter] = self.swarm.P_m.tolist()
+            self.CA_data['D_m'][self.warehouse.counter] = self.swarm.D_m.tolist()
+            self.CA_data['SC'][self.warehouse.counter] = self.swarm.SC.tolist()
+            self.CA_data['r0'][self.warehouse.counter] = self.swarm.r0.tolist()
+        
         self.CA_data['social_transmission_log'][self.warehouse.counter] = self.warehouse.social_transmission_log
+
+    def log_BS_data(self):
+        # Log belief bank contents and store
+        bank_log = []
+        space_log = []
+        for bs in self.swarm.BS:
+            bank_log.append(bs.belief_bank)
+            space_log.append(bs.store)
+        
+        self.belief_bank_log[self.warehouse.counter] = bank_log
+        self.belief_space_log[self.warehouse.counter] = space_log
 
     def log_training_data(self):
 
@@ -186,6 +202,6 @@ class Simulator:
 
         with open(filename, "w") as f:
             json.dump(self.training_data, f, indent=2, default=convert_numpy)
-
+\
         print(f"Training data saved to {filename}")
        

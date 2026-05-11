@@ -86,7 +86,7 @@ class CA(Warehouse):
             self.evaluate() # Update evaluated state of the world
         
         # Socialize and execute happen every iteration
-        # self.socialize()
+        self.socialize()
         self.execute_pickup_dropoff()
 
         self.counter += 1
@@ -216,17 +216,17 @@ class CA(Warehouse):
             fit1 = self._compute_fitness(id1)
             fit2 = self._compute_fitness(id2)
             
-            BS1 = self.swarm.BS[id1]
-            BS2 = self.swarm.BS[id2]
+            bs1 = self.swarm.BS[id1]
+            bs2 = self.swarm.BS[id2]
 
             if ag_diff > self.swarm.tolerance:
                 fit1 = 1-fit1
                 fit2 = 1-fit2
 
-            BS1.update_store(BS2.store,fit2)
-            BS2.update_store(BS1.store,fit1)
-            BS1.update_from_bank()
-            BS2.update_from_bank()
+            bs1.update_store(bs2.store,fit2)
+            bs2.update_store(bs1.store,fit1)
+            bs1.update_from_bank(self.counter)
+            bs2.update_from_bank(self.counter)
 
     def _gen_input_metrics(self, rid):
         return [

@@ -223,10 +223,10 @@ class CA(Warehouse):
                 fit1 = 1-fit1
                 fit2 = 1-fit2
 
-            bs1.update_store(bs2.store,fit2)
-            bs2.update_store(bs1.store,fit1)
-            bs1.update_from_bank(self.counter)
-            bs2.update_from_bank(self.counter)
+            bs1.update_bank(bs2.store,fit2)
+            bs2.update_bank(bs1.store,fit1)
+            bs1.update_from_bank()
+            bs2.update_from_bank()
 
     def _gen_input_metrics(self, rid):
         return [

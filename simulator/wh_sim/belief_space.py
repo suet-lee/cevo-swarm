@@ -50,7 +50,7 @@ class BeliefSpace:
         self.nn_xover_segment_l = max(1, int(len(self.store) / 20))
 
         
-    def update_store(self, new_belief, fitness):
+    def update_bank(self, new_belief, fitness):
         if len(self.belief_bank) == self.bank_size: # It's full
             self.belief_bank = self.belief_bank[1:]
             self.fitness_scores = self.fitness_scores[1:]

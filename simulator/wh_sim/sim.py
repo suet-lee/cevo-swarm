@@ -154,9 +154,11 @@ class Simulator:
         # Log belief bank contents and store
         bank_log = []
         space_log = []
-        for bs in self.swarm.BS:
+        for id, bs in self.swarm.BS.items():
             bank_log.append(bs.belief_bank)
             space_log.append(bs.store)
+            if id == 0:
+                print(bs.belief_bank[0][0])
         
         self.belief_bank_log[self.warehouse.counter] = bank_log
         self.belief_space_log[self.warehouse.counter] = space_log

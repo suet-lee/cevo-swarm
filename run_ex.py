@@ -6,9 +6,9 @@ import numpy as np
 
 ###### Experiment parameters ######
 
-ex_id = 'e_4'
+ex_id = 'e_3'
 verbose = False
-export_data = True #True
+export_data = True
 
 ###### Config class ######
 
@@ -35,8 +35,9 @@ if export_data:
     data = sim.warehouse.novelty_log
     st.export_data(ex_id, data, "novelty")
 
-    #st.export_data(ex_id, sim.belief_bank_log, "belief_bank")
-    #st.export_data(ex_id, sim.belief_space_log, "belief_space")
+    # st.export_data(ex_id, sim.belief_bank_log, "belief_bank")
+    # st.export_data(ex_id, sim.belief_bank_metrics_log, "belief_bank_metrics")
+    # st.export_data(ex_id, sim.belief_space_log, "belief_space")
 
     dn = st.export_data(ex_id,sim.data['box_c'], "boxes")
     st.export_data(ex_id,sim.data['rob_c'], "robots")

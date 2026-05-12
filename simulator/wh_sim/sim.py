@@ -12,6 +12,8 @@ from os.path import dirname, realpath
 import datetime
 import time
 import json
+from scipy.spatial.distance import cdist
+from itertools import combinations
 
 from . import Swarm, CA, Warehouse, Robot
 
@@ -61,6 +63,7 @@ class Simulator:
         self.data = {}
         self.CA_data = {}
         self.belief_bank_log = {} # Stores contents of the belief bank
+        self.belief_bank_metrics_log = {} # Stores contents of the belief bank
         self.belief_space_log = {} # Stores contents of the belief space
         self.training_data = []
         steps = int(self.cfg.get('time_limit')/self.export_steps)
@@ -112,7 +115,7 @@ class Simulator:
                 print("Time elapsed... ",self.warehouse.counter)
             if self.export_data:
                 self.log_CA_data()
-                self.log_BS_data()
+                # self.log_BS_data()
                 if self.warehouse.counter in self.export_ts:
                     self.log_data()
                 if self.export_training_data:
@@ -150,18 +153,40 @@ class Simulator:
         
         self.CA_data['social_transmission_log'][self.warehouse.counter] = self.warehouse.social_transmission_log
 
+    #TODO replace with entropy~
+    def compute_BS_metrics(self, BS_arr):
+        if len(BS_arr) == 0:
+            return -1,-1,-1
+        if len(BS_arr) == 1:
+            return 0, 0, 1
+
+        dists = cdist(BS_arr, BS_arr)
+        vals = []
+        for i1,i2 in combinations(range(len(dists)),2):
+            vals.append(float(dists[i1][i2]))
+
+        vals_arr = np.array(vals)
+        mean = vals_arr.mean()
+        sim_1 = (abs(vals_arr - 1) < 0.1).sum()
+        var = vals_arr.var()
+        return float(mean), float(var), float(sim_1)
+
     def log_BS_data(self):
         # Log belief bank contents and store
+        bank_metrics_log = {}
         bank_log = []
         space_log = []
         for id, bs in self.swarm.BS.items():
+            m,v,s = self.compute_BS_metrics(bs.belief_bank)
+            bank_metrics_log[id] = {"m":m,"v":v,"s":s}
             bank_log.append(bs.belief_bank)
             space_log.append(bs.store)
-            #if id == 0:
-                #print(bs.belief_bank[0][0])
         
-        self.belief_bank_log[self.warehouse.counter] = bank_log
-        self.belief_space_log[self.warehouse.counter] = space_log
+        if self.warehouse.counter % 1000:
+            self.belief_bank_log[self.warehouse.counter] = bank_log #TODO this is too much data to save...
+        if self.warehouse.counter % 100:
+            self.belief_bank_metrics_log[self.warehouse.counter] = bank_log
+            self.belief_space_log[self.warehouse.counter] = space_log
 
     def log_training_data(self):
 

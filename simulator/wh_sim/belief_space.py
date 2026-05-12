@@ -51,6 +51,11 @@ class BeliefSpace:
 
         
     def update_bank(self, new_belief, fitness):
+        try:
+            new_belief = new_belief.tolist()
+        except:
+            pass
+
         if len(self.belief_bank) == self.bank_size: # It's full
             self.belief_bank = self.belief_bank[1:]
             self.fitness_scores = self.fitness_scores[1:]
@@ -70,6 +75,9 @@ class BeliefSpace:
         return np.array(x) + np.array(x)*mask*mutate_d
 
     def update_from_bank(self):
+        if len(self.belief_bank) == 0: # It didn't socialize yet - no new beliefs :)
+            return
+        
         # Select from belief bank
         selected = random.randrange(0,min(self.select_t,len(self.belief_bank)))
         selected_idx = np.argsort(self.fitness_scores)[::-1][selected]
@@ -77,7 +85,7 @@ class BeliefSpace:
         
         new_belief = self._crossover(self.store, selected_belief, self.nn_xover_segment_l)
         new_belief = self._mutation(new_belief)
-        self.store = new_belief
+        self.store = new_belief.tolist()
 
     @staticmethod
     def normalize_input(x):

@@ -6,14 +6,14 @@ import numpy as np
 
 ###### Experiment parameters ######
 
-ex_id = 'e_0'
+ex_id = 'e_4'
 verbose = False
-export_data = False #True
+export_data = True #True
 
 ###### Config class ######
 
 default_cfg_file = CFG_FILES['default']
-cfg_file = CFG_FILES['ex_0']
+cfg_file = CFG_FILES['ex_1']
 cfg_obj = Config(cfg_file, default_cfg_file, ex_id=ex_id)
 
 ###### Functions ######
@@ -35,8 +35,8 @@ if export_data:
     data = sim.warehouse.novelty_log
     st.export_data(ex_id, data, "novelty")
 
-    st.export_data(ex_id, sim.belief_bank_log, "belief_bank")
-    st.export_data(ex_id, sim.belief_space_log, "belief_space")
+    #st.export_data(ex_id, sim.belief_bank_log, "belief_bank")
+    #st.export_data(ex_id, sim.belief_space_log, "belief_space")
 
     dn = st.export_data(ex_id,sim.data['box_c'], "boxes")
     st.export_data(ex_id,sim.data['rob_c'], "robots")

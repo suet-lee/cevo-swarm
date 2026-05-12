@@ -27,7 +27,10 @@ class SaveTo(GenDir):
 
     def export_data(self, ex_id, data, filename, transpose=False):
         if not isinstance(data, pd.DataFrame):
-            data = pd.DataFrame(data)
+            if isinstance(data, dict):
+                data = pd.DataFrame({k: pd.Series(v) for k, v in data.items()})
+            else:
+                data = pd.DataFrame(data)
         if transpose:
             data = data.transpose()
 

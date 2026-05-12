@@ -1,67 +1,163 @@
-import math
+import json
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import ast
 
-class nnModel:
+class nnModel(nn.Module):
 
     def __init__(self,
-                 input_size=None,
-                 output_size=None,
-                 hidden_nodes_per_layer=None,
-                 weights=None):
-        
-        self.input_size = input_size or [] #TODO remove redundant
-        self.output_size = output_size or []
-        self.hidden_nodes_per_layer = hidden_nodes_per_layer or []
-        self.weights = weights or []
+                 input_size,
+                 output_size,
+                 hidden_nodes_per_layer):
+
+        super().__init__()
+
+        layers = []
+
+        prev = input_size
+
+        for hidden_size in hidden_nodes_per_layer:
+            layers.append(nn.Linear(prev, hidden_size))
+            layers.append(nn.Tanh())
+            prev = hidden_size
+
+        layers.append(nn.Linear(prev, output_size))
+
+        self.net = nn.Sequential(*layers)
+
+    def forward(self, x):
+
+        if not isinstance(x, torch.Tensor):
+            x = torch.tensor(x, dtype=torch.float32)
+
+        return self.net(x)
 
     def compute(self, input_vec):
-        return self._compute(input_vec)
 
-    def _compute(self, input0):
-        wid = 0
+        with torch.no_grad():
+            output = self.forward(input_vec)
 
-        # First layer
-        weight_d = self.hidden_nodes_per_layer[0]
-        weights_slice = self.weights[wid:wid + weight_d]
-        wid += weight_d
-        input_layer = self.computeLayer(input0, self.hidden_nodes_per_layer[0], weights_slice)
-
-        # Hidden layers
-        for i in range(1, len(self.hidden_nodes_per_layer)):
-            weight_d = len(input_layer) * self.hidden_nodes_per_layer[i]
-            weights_slice = self.weights[wid:wid + weight_d]
-            wid += weight_d
-            input_layer = self.computeLayer(input_layer, self.hidden_nodes_per_layer[i], weights_slice)
-    
-        # Output layer
-        weight_d = len(input_layer) * self.output_size
-        weights_slice = self.weights[wid:wid + weight_d]
-        return self.computeLayer(input_layer, self.output_size, weights_slice)
+        return output.numpy().tolist()
 
     @staticmethod
-    def sigmoid(x):
-        return x / (1 + abs(x))
+    def normalize_input(x):
+
+        return [
+            x[0],
+            x[1] / 1000.0,
+            x[2] / 10.0,
+            x[3] / 50.0,
+            x[4]
+        ]
+
+    def train_model(self,
+                    training_data,
+                    epochs=200,
+                    learning_rate=0.001):
+
+        X = torch.tensor(
+            [nnModel.normalize_input(sample["input"]) for sample in training_data],
+            dtype=torch.float32
+        )
+
+        Y = torch.tensor(
+            [sample["output"] for sample in training_data],
+            dtype=torch.float32
+        )
+
+        criterion = nn.MSELoss()
+
+        optimizer = optim.Adam(
+            self.parameters(),
+            lr=learning_rate
+        )
+
+        for epoch in range(epochs):
+
+            optimizer.zero_grad()
+
+            predictions = self.forward(X)
+
+            loss = criterion(predictions, Y)
+
+            loss.backward()
+
+            optimizer.step()
+
+            if epoch % 10 == 0:
+                print(f"epoch {epoch}, loss = {loss.item():.6f}")
+
+    def save_weights_txt(self, filename="weights0.txt"):
+
+        weights = []
+
+        for param in self.parameters():
+            weights.extend(
+                param.detach().numpy().flatten().tolist()
+            )
+
+        with open(filename, "w") as f:
+            f.write(str(weights))
+
+        print(f"Weights saved to {filename}")
+
+    def set_weights(self, weights):
+
+        idx = 0
+
+        for param in self.parameters():
+            shape = param.data.shape
+            size = param.numel()
+
+            values = weights[idx:idx + size]
+
+            tensor = torch.tensor(
+                values,
+                dtype=torch.float32
+            ).view(shape)
+
+            param.data = tensor
+
+            idx += size
+
+    def get_weights(self):
+        weights = []
+
+        for param in self.parameters():
+            weights.extend(
+                param.detach().cpu().numpy().flatten().tolist()
+            )
+
+        return weights
+
+    def load_weights_txt(self, filename="weights0.txt"):
+
+        with open(filename, "r") as f:
+            weights = ast.literal_eval(f.read())
+
+        idx = 0
+
+        for param in self.parameters():
+            shape = param.data.shape
+
+            size = param.numel()
+
+            values = weights[idx:idx + size]
+
+            tensor = torch.tensor(values, dtype=torch.float32)
+            tensor = tensor.view(shape)
+
+            param.data = tensor
+
+            idx += size
+
+        print(f"Weights loaded from {filename}")
+
+        print(f"Model loaded from {filename}")
 
     @staticmethod
-    def tanh(x):
-        return math.tanh(x)
+    def load_training_data(filename="training_data.json"):
 
-    @staticmethod
-    def activate(x):
-        return nnModel.sigmoid(x) #TODO think sigmoid or tanh
-
-    @staticmethod
-    def computeLayer(input_data, output_size0, weights):
-        wid = 0
-        output = []
-        
-        for _ in range(output_size0):
-            node_value = 0
-            for ipt in input_data:
-                w = weights[wid]
-                node_value += w * ipt
-            wid += 1
-
-            node_value = nnModel.activate(node_value)
-            output.append(node_value)
-
-        return output
+        with open(filename, "r") as f:
+            return json.load(f)

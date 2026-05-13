@@ -244,22 +244,19 @@ class CA(Warehouse):
             # Generate parameters from BS (norm interpretation)
             metrics = self._gen_input_metrics(id)
             new_params = self.swarm.BS[id].generate_norm(metrics)
-            if self.counter%100==0 and id==0: #TODO for debugging
-                print(new_params)
-            start_index = id * self.swarm.no_ap
+            print(new_params)
+            # if self.counter%100==0 and id==0: #TODO for debugging
+            #     print(new_params)
 
             # Each param: behaviour → BS_ version
             for attr in ["P_m","D_m","SC","r0"]:
                 try:
-                    target_array = getattr(self.swarm, attr)  # Get the stored behaviour param
-                    source_array = new_params[attr]  # Get the generated belief space param
-                    
-                    for i in range(self.swarm.no_ap):
-                        v_new = source_array[i]
-                        target_array[start_index + i] = v_new
+                    bs_attr = "BS_%s"%attr
+                    target_array = getattr(self.swarm, bs_attr)  # Get the stored behaviour param
+                    target_array[id] = new_params[attr]
 
                     # After the update, store the modified target_array back to self.BS_
-                    setattr(self.swarm, attr, target_array)
+                    setattr(self.swarm, bs_attr, target_array)
                 except Exception as e:
                     print(e)
                 

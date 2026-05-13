@@ -83,6 +83,12 @@ class Swarm:
         self.r0 = np.array([]) # wall template radius from aggregation point (i.e. nest site)
         self.novelty_seeking = np.array([]) # Used for evaluation function for novelty
 
+        # Belief space params
+        self.BS_SC = np.array([0]*self.number_of_agents)
+        self.BS_r0 = np.array([0]*self.number_of_agents)
+        self.BS_P_m = np.array([0]*self.number_of_agents)
+        self.BS_D_m = np.array([0]*self.number_of_agents)
+
         for idx, subc in enumerate(culture):
             no_agents = math.floor(self.number_of_agents*subc['ratio'])
             # probably a better way to unpack variables by list.pop() or next()
@@ -258,10 +264,14 @@ class Swarm:
                 p = self.base_pickup_p
             else:
                 d_ = d#(d*2/self.camera_sensor_range_V[closest_r]).flatten()
-                idx = closest_r*len(warehouse.ap)+closest_ap
-                SC = self.SC[idx]*warehouse.number_of_boxes # SC is in range [0,1]
-                r0 = self.r0[idx]*min(warehouse.width,warehouse.height)
-                p = self.P_m[idx]*( 1 - 1/(1+self.tau*(d_-r0)*(d_-r0)) ).flatten()
+                # idx = closest_r*len(warehouse.ap)+closest_ap
+                # sc = self.SC[idx]*warehouse.number_of_boxes # SC is in range [0,1]
+                # r0 = self.r0[idx]*min(warehouse.width,warehouse.height)
+                # P_m = self.P_m[idx]
+                SC = self.BS_SC[closest_r]*warehouse.number_of_boxes
+                r0 = self.BS_r0[closest_r]*min(warehouse.width,warehouse.height)
+                P_m = self.BS_P_m[closest_r]
+                p = P_m*( 1 - 1/(1+self.tau*(d_-r0)*(d_-r0)) ).flatten()
                 p = self._G(p, closest_r, SC)
                 p = np.maximum([0]*len(p),p)
 
@@ -293,10 +303,13 @@ class Swarm:
         # TODO cleanup - remove the scaling factor from code
         d2 = d1#d1*2/self.camera_sensor_range_V[rob_id] # scale down by factor cam_range/2
         
-        idx = rob_id*len(warehouse.ap)+ap_idx
-        SC = self.SC[idx]*warehouse.number_of_boxes # SC is in range [0,1]
-        r0 = self.r0[idx]*min(warehouse.width,warehouse.height)
-        p = self.D_m[idx]/(1+self.tau*(d2-r0)*(d2-r0))
+        # idx = rob_id*len(warehouse.ap)+ap_idx
+        # SC = self.SC[idx]*warehouse.number_of_boxes # SC is in range [0,1]
+        # r0 = self.r0[idx]*min(warehouse.width,warehouse.height)
+        SC = self.BS_SC[rob_id]*warehouse.number_of_boxes
+        r0 = self.BS_r0[rob_id]*min(warehouse.width,warehouse.height)
+        D_m = self.BS_D_m[rob_id]
+        p = D_m/(1+self.tau*(d2-r0)*(d2-r0))
         p = self._F(p,rob_id,SC)
         p = np.maximum([0]*len(p),p)
 

@@ -4,7 +4,7 @@ from simulator import CFG_FILES, MODEL_ROOT, STATS_ROOT
 import time
 
 
-ex_id = 'e_0'
+ex_id = 'e_1'
 iterations = 200
 verbose = False    
 batch_id = 'heading_bias'

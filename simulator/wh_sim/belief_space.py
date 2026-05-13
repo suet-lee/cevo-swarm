@@ -101,6 +101,8 @@ class BeliefSpace:
 
     def generate_norm(self, input):
         output = np.array(self.nn_model.compute(self.normalize_input(input))) # Assume order of output is # [ag1_Pm1, ag1_Pm2, ag2_Pm1, ag2_Pm2,...]
+        output = np.minimum([1]*len(output), output)
+        output = np.maximum([0]*len(output), output)
         return {
             "P_m": output[::4].copy(),
             "D_m": output[1::4].copy(),

@@ -263,7 +263,8 @@ class Swarm:
                 r0 = self.r0[idx]*min(warehouse.width,warehouse.height)
                 p = self.P_m[idx]*( 1 - 1/(1+self.tau*(d_-r0)*(d_-r0)) ).flatten()
                 p = self._G(p, closest_r, SC)
-                
+                p = np.maximum([0]*len(p),p)
+
             pickup = np.random.binomial(1,p)
             if pickup and self.set_agent_box_state(closest_r, 1):
                 warehouse.box_is_free[box_id] = 0 # change box state to 0 (not free, on a robot)
@@ -297,6 +298,7 @@ class Swarm:
         r0 = self.r0[idx]*min(warehouse.width,warehouse.height)
         p = self.D_m[idx]/(1+self.tau*(d2-r0)*(d2-r0))
         p = self._F(p,rob_id,SC)
+        p = np.maximum([0]*len(p),p)
 
         # if aggregation points are out of range, probability of dropoff is fixed at base rate
         in_range = (d1 <= self.camera_sensor_range_V[rob_id])

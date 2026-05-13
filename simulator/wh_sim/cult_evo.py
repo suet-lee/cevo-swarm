@@ -153,9 +153,6 @@ class CA(Warehouse):
             old_ap_var1 = self.global_state_prev['ap_var'][1]
             novelty = 0.25*abs(ap_m0-old_ap_m0)/max_r + 0.25*abs(ap_var0-old_ap_var0)/max_diff_var \
                 + 0.25*abs(ap_m1-old_ap_m1)/max_r + 0.25*abs(ap_var1-old_ap_var1)/max_diff_var
-            
-            # print(0.25*abs(ap_m0-old_ap_m0)/max_r, 0.25*abs(ap_m1-old_ap_m1)/max_r)
-            # print(0.25*abs(ap_var0-old_ap_var0)/max_diff_var, 0.25*abs(ap_var1-old_ap_var1)/max_diff_var)
 
             self.global_state_prev = {'ap_m':[ap_m0,ap_m1], 'ap_var':[ap_var0,ap_var1]}
 
@@ -180,12 +177,14 @@ class CA(Warehouse):
         # Compute structural similarity
         new_gs = self._convert_to_pixel_grid(self.box_c)
         score, diff = ssim(self.global_state_prev, new_gs, full=True, data_range=1.0)
+        score = (max(0.6,score)-0.6)/0.4
         # score of 1 means exactly the same
         return 1-score
 
     # Evaluate the novelty in the world
     def evaluate(self):
         self.global_env_novelty = self.compute_global_env_novelty()
+        print(self.global_env_novelty) #TODO debugging
         self.novelty_log.append(self.global_env_novelty)
         # self.swarm.compute_local_env_novelty() #TODO can be combined
 
@@ -245,21 +244,23 @@ class CA(Warehouse):
             # Generate parameters from BS (norm interpretation)
             metrics = self._gen_input_metrics(id)
             new_params = self.swarm.BS[id].generate_norm(metrics)
+            if self.counter%100==0 and id==0: #TODO for debugging
+                print(new_params)
             start_index = id * self.swarm.no_ap
 
             # Each param: behaviour → BS_ version
             for attr in ["P_m","D_m","SC","r0"]:
                 try:
                     target_array = getattr(self.swarm, attr)  # Get the stored behaviour param
-                    source_array= getattr(new_params, attr)  # Get the generated belief space param
-
+                    source_array = new_params[attr]  # Get the generated belief space param
+                    
                     for i in range(self.swarm.no_ap):
-                        v_new = source_array[start_index + i]
+                        v_new = source_array[i]
                         target_array[start_index + i] = v_new
 
                     # After the update, store the modified target_array back to self.BS_
                     setattr(self.swarm, attr, target_array)
                 except Exception as e:
-                    pass
-
+                    print(e)
+                
 

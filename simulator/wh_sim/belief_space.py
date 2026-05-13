@@ -86,6 +86,7 @@ class BeliefSpace:
         new_belief = self._crossover(self.store, selected_belief, self.nn_xover_segment_l)
         new_belief = self._mutation(new_belief)
         self.store = new_belief.tolist()
+        self.nn_model.set_weights(new_belief)
 
     @staticmethod
     def normalize_input(x):
